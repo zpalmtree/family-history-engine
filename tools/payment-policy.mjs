@@ -95,6 +95,27 @@ export const paymentCheckoutProfiles = Object.freeze({
     // which requires the basket to hold exactly the reviewed entry, may pay.
     driverOnly: "-FindAWillOrder"
   }),
+  // Observed 20 Nov 2026 with -Explore from a signed-in basket: ScotlandsPeople's
+  // checkout (Billing, Review, "Continue to payment") hands the browser to
+  // Worldpay's hosted page (payments.worldpay.com/app/hpp/175-2/payment/start,
+  // "Select Payment Method"), which shows "Scotland's People Order" and the
+  // amount and offers Credit/Debit Cards or PayPal. No buffer: a credit bundle
+  // has a fixed price. The Complete Payment step is Worldpay's own second
+  // confirmation as seen on GRO's use of the same page; it has not yet been
+  // seen here and is clicked, if it appears, under the same host and amount
+  // checks.
+  scotlandspeople: Object.freeze({
+    provider: "ScotlandsPeople",
+    hosts: Object.freeze([/^(?:payments|hpp)\.worldpay\.com$/i]),
+    buffer: 0,
+    cardMethod: /^credit\/debit cards$/i,
+    payControl: /^make payment$/i,
+    confirmControl: /^complete payment$/i,
+    merchantHosts: Object.freeze([/^www\.scotlandspeople\.gov\.uk$/i]),
+    // The host check cannot tell what the basket holds: only the order driver,
+    // which requires the basket to hold exactly the reviewed bundle, may pay.
+    driverOnly: "-ScotlandsPeopleCredits"
+  }),
   tna: Object.freeze({
     provider: "The National Archives",
     hosts: Object.freeze([/^(?:payments|hpp)\.worldpay\.com$/i]),

@@ -1,6 +1,6 @@
 {
   "name": "family-history-engine",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -125,7 +125,7 @@
     "research:requests:event": "node tools/record-external-request-event.mjs",
     "research:requests:migrate-contact": "node tools/migrate-contact-requests.mjs",
     "research:required:check": "node tools/backfill-required-assertions.mjs",
-    "research:test": "node --test tools/unarchived-reads.test.mjs tools/research-depth.test.mjs tools/reopen-question.test.mjs tools/reopen-triggers.test.mjs tools/research-actions.test.mjs tools/research-orchestration-compact.test.mjs tools/external-request-state.test.mjs tools/acquisition-attempt-fingerprint.test.mjs tools/research-acquisition-routing.test.mjs tools/research-provider-capabilities.test.mjs tools/research-provider-results.test.mjs tools/needs-user.test.mjs tools/access-gates.test.mjs tools/saved-signin.test.mjs tools/tna-digital-download.test.mjs tools/research-question-state.test.mjs tools/research-queue.test.mjs tools/research-state-v2.test.mjs tools/research-access-preemption.test.mjs tools/quote-acceptance.test.mjs tools/ancestry-membership-order.test.mjs tools/payment-ledger.test.mjs tools/gro-order-reconcile.test.mjs tools/wuppertal-serviceportal.test.mjs tools/inbox-tidy.test.mjs",
+    "research:test": "node --test tools/unarchived-reads.test.mjs tools/research-depth.test.mjs tools/reopen-question.test.mjs tools/reopen-triggers.test.mjs tools/research-actions.test.mjs tools/research-orchestration-compact.test.mjs tools/external-request-state.test.mjs tools/acquisition-attempt-fingerprint.test.mjs tools/research-acquisition-routing.test.mjs tools/research-provider-capabilities.test.mjs tools/research-provider-results.test.mjs tools/needs-user.test.mjs tools/access-gates.test.mjs tools/saved-signin.test.mjs tools/tna-digital-download.test.mjs tools/research-question-state.test.mjs tools/research-queue.test.mjs tools/research-state-v2.test.mjs tools/research-access-preemption.test.mjs tools/quote-acceptance.test.mjs tools/scotlandspeople-credits-order.test.mjs tools/ancestry-membership-order.test.mjs tools/payment-ledger.test.mjs tools/gro-order-reconcile.test.mjs tools/wuppertal-serviceportal.test.mjs tools/inbox-tidy.test.mjs",
     "gro:test": "node --test tools/gro-index-search.test.mjs tools/gro-index-results.test.mjs tools/shared-chrome-task.test.mjs tools/gro-shared-window.test.mjs tools/authorized-email-inquiry.test.mjs tools/authorized-contact-form.test.mjs tools/waas-contact-guards.test.mjs tools/inquiry-response-status.test.mjs tools/inspect-inquiry-response.test.mjs tools/download-inquiry-attachments.test.mjs tools/inquiry-inbox-audit.test.mjs tools/archion-access.test.mjs",
     "research:current": "node tools/build-research-current-state.mjs",
     "research:current:check": "node tools/build-research-current-state.mjs --check",

@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { browserVersion, stateDirectory } from "./local-browser.mjs";
+import { getSecret } from "./secret-store.mjs";
 import { engineRoot } from "./tree-config.mjs";
 
 export function lockFile() {
@@ -51,8 +52,20 @@ export function resolveTool(name, root = engineRoot) {
 }
 
 async function main() {
-  const [tool, ...rest] = process.argv.slice(2);
-  if (!tool) throw new Error("usage: npm run local -- <tool> [arguments...]");
+  const argv = process.argv.slice(2);
+  // --secret-stdin <name> pipes a secret from the OS store to the tool's
+  // stdin (the Windows wrappers pipe DPAPI profiles the same way), e.g. the
+  // contact-form requester profile with --contact-profile-stdin.
+  const secretIndex = argv.indexOf("--secret-stdin");
+  const secretName = secretIndex >= 0 ? argv[secretIndex + 1] : null;
+  if (secretIndex >= 0) argv.splice(secretIndex, 2);
+  const [tool, ...rest] = argv;
+  if (!tool) throw new Error("usage: npm run local -- <tool> [arguments...] [--secret-stdin <name>]");
+  let input;
+  if (secretName) {
+    input = getSecret(secretName);
+    if (!input) throw new Error(`No secret named ${secretName} is stored: npm run secret -- set ${secretName}`);
+  }
   const script = resolveTool(tool);
   if (!await browserVersion()) throw new Error("The local Chrome is not running: start it with npm run browser:start.");
   const release = await acquireBrowserLock();
@@ -60,7 +73,8 @@ async function main() {
     const args = rest.includes("--shared-window") ? rest : [...rest, "--shared-window"];
     const result = spawnSync(process.execPath, [script, ...args], {
       cwd: engineRoot,
-      stdio: "inherit",
+      input,
+      stdio: [input === undefined ? "inherit" : "pipe", "inherit", "inherit"],
       env: { ...process.env, FAMILY_HISTORY_BROWSER_BACKEND: "local" }
     });
     process.exitCode = result.status ?? 1;

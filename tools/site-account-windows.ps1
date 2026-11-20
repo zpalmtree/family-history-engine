@@ -80,7 +80,10 @@ function Enter-Password([string]$Password, [string]$InputType = "password") {
   if ((Get-PageHost) -ne $ExpectedHost) { throw "The tab is not on $ExpectedHost." }
   foreach ($selector in $selectors) {
     $selectorJson = $selector | ConvertTo-Json
-    $focus = (Invoke-Cdp "Runtime.evaluate" @{ returnByValue = $true; expression = "(() => { const el = document.querySelector($selectorJson); if (!el || !el.offsetParent || el.type !== '$InputType') return 'no-$InputType-input'; el.focus(); el.value = ''; return 'ok'; })()" }).result.result.value
+    # A sign-in name field is often a plain text input marked autocomplete="username"
+    # (ScotlandsPeople, 20 Nov 2026); it counts as the account's email field.
+    $typeTest = if ($InputType -eq "email") { "(el.type === 'email' || (el.type === 'text' && (el.getAttribute('autocomplete') || '').split(' ').some((part) => part === 'username' || part === 'email')))" } else { "el.type === '$InputType'" }
+    $focus = (Invoke-Cdp "Runtime.evaluate" @{ returnByValue = $true; expression = "(() => { const el = document.querySelector($selectorJson); if (!el || !el.offsetParent || !$typeTest) return 'no-$InputType-input'; el.focus(); el.value = ''; return 'ok'; })()" }).result.result.value
     if ($focus -ne "ok") { throw "Input not ready ($selector): $focus" }
     [void](Invoke-Cdp "Input.insertText" @{ text = $Password })
     Start-Sleep -Milliseconds 250

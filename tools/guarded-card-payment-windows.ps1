@@ -29,6 +29,11 @@ param(
   [switch]$NjArchivesOrder,
   # With -NjArchivesOrder: never reveal the tab for the user; stop quietly instead.
   [switch]$NoManual,
+  # Buy the reviewed ScotlandsPeople credit bundle under -Request.
+  [switch]$ScotlandsPeopleCredits,
+  # With -ScotlandsPeopleCredits: go through billing and review with no
+  # authorization and report the payment page; never touches a payment page.
+  [switch]$Explore,
   # Run the Ancestry membership order driver, which reaches checkout itself.
   [switch]$AncestryMembership,
   # With -AncestryMembership: only read the account's past charge amounts.
@@ -65,6 +70,10 @@ try {
     $nodeArgs = @("tools/nj-archives-order.mjs", "--request", $Request)
     if ($Inspect) { $nodeArgs += "--inspect" }
     if ($NoManual) { $nodeArgs += "--no-manual" }
+  } elseif ($ScotlandsPeopleCredits) {
+    $nodeArgs = @("tools/scotlandspeople-credits-order.mjs", "--request", $Request)
+    if ($Inspect) { $nodeArgs += "--inspect" }
+    if ($Explore) { $nodeArgs += "--explore" }
   } elseif ($AncestryMembership) {
     $nodeArgs = @("tools/ancestry-membership-order.mjs", "--request", $Request)
     if ($Inspect) { $nodeArgs += "--explore" }

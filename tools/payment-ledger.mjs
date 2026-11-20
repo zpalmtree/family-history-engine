@@ -95,7 +95,7 @@ function providerBankProfile(provider) {
   return entry ? { id: entry[0], ...entry[1] } : null;
 }
 
-const cardDrivers = { ancestry: "-AncestryMembership", findAWill: "-FindAWillOrder", gro: "-GroOrder", msa: "-MsaOrder", tna: "-TnaPageCheck" };
+const cardDrivers = { ancestry: "-AncestryMembership", findAWill: "-FindAWillOrder", gro: "-GroOrder", msa: "-MsaOrder", scotlandspeople: "-ScotlandsPeopleCredits", tna: "-TnaPageCheck" };
 
 // Where the money goes and whether a reviewed helper can take it there. The
 // provider's own words (the recorded fee, approval and instruction notes) are
@@ -756,7 +756,7 @@ export function automatedInvocation(entry) {
   // placeholders for the agent's later, judged steps.
   const command = String(entry.next?.command || "").split("  #")[0].trim();
   if (entry.next?.actor === "user" || /<[^>]+>/.test(command)) return null;
-  const pay = /^npm run pay:win -- -Request ([a-z0-9-]+) (-AncestryMembership|-FindAWillOrder|-GroOrder|-MsaOrder|-NjArchivesOrder|-TnaPageCheck)$/.exec(command);
+  const pay = /^npm run pay:win -- -Request ([a-z0-9-]+) (-AncestryMembership|-FindAWillOrder|-GroOrder|-MsaOrder|-NjArchivesOrder|-ScotlandsPeopleCredits|-TnaPageCheck)$/.exec(command);
   if (pay) return { label: command, npmArgs: ["run", "pay:win", "--", "-Request", pay[1], pay[2]] };
   const transfer = /^npm run transfer:win -- -Request ([a-z0-9-]+)$/.exec(command);
   if (transfer) return { label: command, npmArgs: ["run", "transfer:win", "--", "-Request", transfer[1]] };

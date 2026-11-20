@@ -40,7 +40,7 @@ The store, build, validators, GEDCOM tools, life stories and viewer run anywhere
 | Running a research tool | `npm run local -- tools/<tool>.mjs [arguments]` | The `*:win:*` npm scripts and PowerShell wrappers |
 | Provider sign-in | Chrome's own saved passwords in the tree's profile | The same, through the bridge |
 
-`npm run local` holds one browser lock so tasks never drive Chrome at the same time, and runs the tool as the Windows wrappers would. Secrets go in the operating system's own store: `npm run secret -- set <name>` (value on stdin), `status` and `delete`, kept in the macOS Keychain or the Linux Secret Service under the tree's id. Still Windows-only for now: the helpers that read the existing DPAPI profiles (requester locality, TLCPL, Lob, API keys), the personal IMAP mailbox reader, and the wrappers' window handling.
+`npm run local` holds one browser lock so tasks never drive Chrome at the same time, and runs the tool as the Windows wrappers would. Secrets go in the operating system's own store: `npm run secret -- set <name>` (value on stdin), `status` and `delete`, kept in the macOS Keychain or the Linux Secret Service under the tree's id. The contact-form requester profile is stored as JSON (`npm run secret -- set archive-request-profile`) and handed to the form helper with `npm run local -- tools/authorized-contact-form.mjs --target <id> --contact-profile-stdin --secret-stdin archive-request-profile`; the TLCPL library profile uses the store directly. Still Windows-only for now: the Lob cheque account and the API-key bridges, the personal IMAP mailbox reader, and the wrappers' window handling.
 
 ## Upgrading the engine
 
