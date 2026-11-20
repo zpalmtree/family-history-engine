@@ -15,7 +15,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { STORE_SCHEMA_VERSION, TREE_CONFIG_SCHEMA_VERSION, VIEWER_BRANDING_FILE, engineRoot, viewerBrandingSource } from "./tree-config.mjs";
-import { planImport, writeImport } from "./gedcom-import.mjs";
+import { countriesInGedcom, planImport, writeImport } from "./gedcom-import.mjs";
+import { baseCountryFlags, countryCodes } from "./place-labels.mjs";
 import { EMPTY_LEGACY_SHA256, TREE_RECENCY_POLICY_ID } from "./tree-recency-policy.mjs";
 import { buildExtractionCampaign } from "./extraction-store.mjs";
 
@@ -133,15 +134,18 @@ export function initTree({ dir, id, title, gedcom = null, linkNodeModules = fals
   let plan = null;
   // Everyone imported becomes visible now; the recency ledger records it.
   const treeAddedAt = `${new Date().toISOString().slice(0, 19)}+00:00`;
+  let countries = [];
   if (gedcom) {
-    plan = planImport(fs.readFileSync(gedcom, "utf8"), { fileName: gedcom, branchId: BRANCH_ID, today, treeAddedAt });
+    const text = fs.readFileSync(gedcom, "utf8");
+    countries = countriesInGedcom(text).filter((name) => !Object.hasOwn(baseCountryFlags, name));
+    plan = planImport(text, { fileName: gedcom, branchId: BRANCH_ID, today, treeAddedAt, countries });
     if (plan.rootPersonId) rootPersonIds = [plan.rootPersonId];
   }
   const packageFile = path.join(target, "package.json");
   const pkg = JSON.parse(fs.readFileSync(packageFile, "utf8"));
   pkg.name = id;
   write(target, "package.json", pkg);
-  write(target, "tree.config.json", treeConfigFor({ id, title, rootPersonIds, primaryCheckout: target }));
+  write(target, "tree.config.json", { ...treeConfigFor({ id, title, rootPersonIds, primaryCheckout: target }), places: { countries: countries.map((name) => ({ name, flag: countryCodes[name] || null })) } });
   write(target, VIEWER_BRANDING_FILE, viewerBrandingSource({ title, issuer: id }));
   write(target, "consents.json", { schemaVersion: 1, note: "Outward-facing helpers this tree's owner has switched on. All are off in a new tree; see TREE-SETUP.md.", capabilities: {} });
   for (const [relative, value] of Object.entries(emptyStore({ title, rootPersonIds }))) write(target, relative, value);

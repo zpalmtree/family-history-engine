@@ -70,7 +70,11 @@ export function buildFamilyData(sources = loadCanonicalSources()) {
   return {
     schemaVersion: 6,
     // Title, roots and home people for the viewer, from tree.config.json.
-    viewerProfile: viewerProfile(undefined, (id) => nameById.get(id)),
+    viewerProfile: {
+      ...viewerProfile(undefined, (id) => nameById.get(id)),
+      // Flag artwork the engine ships (assets/flags/<code>.svg).
+      flagArtwork: fs.readdirSync(new URL("../assets/flags/", import.meta.url)).filter((name) => name.endsWith(".svg")).map((name) => name.slice(0, -4)).sort()
+    },
     people: namedPeople,
     ...(people.exhibits?.length ? { exhibits: people.exhibits } : {}),
     ...(gazetteer ? { placeCoordinates: placeCoordinatesFor(people.people.filter((person) => visualPersonIds.has(person.id)), gazetteer) } : {}),

@@ -1,12 +1,34 @@
-export const placeCountries = new Set([
-  "England",
-  "Germany",
-  "Ireland",
-  "Italy",
-  "Scotland",
-  "United States",
-  "Wales"
-]);
+import { loadTreeConfig } from "./tree-config.mjs";
+
+// The countries the engine ships flags for, plus any a tree adds in
+// tree.config.json places.countries ([{ name, flag }]).
+export const baseCountryFlags = Object.freeze({
+  England: "england",
+  Germany: "de",
+  Ireland: "ie",
+  Italy: "it",
+  Scotland: "scotland",
+  "United States": "us",
+  Wales: "wales"
+});
+
+// ISO 3166 codes for countries a tree commonly adds; a country without flag
+// artwork in assets/flags shows its code as a badge instead.
+export const countryCodes = Object.freeze({
+  Argentina: "ar", Australia: "au", Austria: "at", Belgium: "be", Brazil: "br", Canada: "ca", Chile: "cl", China: "cn",
+  Croatia: "hr", Cuba: "cu", "Czech Republic": "cz", Czechia: "cz", Denmark: "dk", Estonia: "ee", Finland: "fi", France: "fr",
+  Greece: "gr", Hungary: "hu", India: "in", Jamaica: "jm", Japan: "jp", Latvia: "lv", Lithuania: "lt", Luxembourg: "lu",
+  Malta: "mt", Mexico: "mx", Netherlands: "nl", "New Zealand": "nz", "Northern Ireland": "gb-nir", Norway: "no",
+  Philippines: "ph", Poland: "pl", Portugal: "pt", "Puerto Rico": "pr", Romania: "ro", Russia: "ru", Serbia: "rs",
+  Slovakia: "sk", Slovenia: "si", "South Africa": "za", Spain: "es", Sweden: "se", Switzerland: "ch", Ukraine: "ua"
+});
+
+export function configuredCountries(config = loadTreeConfig()) {
+  return (config.places?.countries || []).filter((entry) => entry && typeof entry.name === "string" && entry.name.trim())
+    .map((entry) => ({ name: entry.name.trim(), flag: entry.flag || countryCodes[entry.name.trim()] || null }));
+}
+
+export const placeCountries = new Set([...Object.keys(baseCountryFlags), ...configuredCountries().map((entry) => entry.name)]);
 
 export const placeRoles = new Set([
   "associated",

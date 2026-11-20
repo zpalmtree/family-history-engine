@@ -354,7 +354,9 @@ function projectFamilyData(source) {
       exportTitle: profile.exportTitle,
       exportSlug: profile.exportSlug,
       roots: profile.roots.map((root) => ({ personId: root.personId, name: root.name, sideLabel: root.sideLabel, ...(root.sideViewId ? { sideViewId: root.sideViewId } : {}) })),
-      homePersonIds: [...profile.homePersonIds]
+      homePersonIds: [...profile.homePersonIds],
+      countries: (profile.countries || []).map((entry) => ({ name: entry.name, flag: entry.flag || null })),
+      flagArtwork: [...(profile.flagArtwork || [])]
     } } : {}),
     people,
     ...(exhibits.length ? { exhibits } : {}),

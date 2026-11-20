@@ -218,6 +218,8 @@ export function viewerProfile(config = loadTreeConfig(), nameOf = () => null) {
   });
   return {
     ...branding,
+    // Countries this tree adds beyond the engine's own ([{ name, flag }]).
+    countries: (config.places?.countries || []).filter((entry) => entry?.name).map((entry) => ({ name: entry.name, flag: entry.flag || null })),
     // Image exports: "<exportTitle> — <view>" saved as "<exportSlug>-<view>.png".
     exportTitle: config.viewer.exportTitle || config.tree.title,
     exportSlug: config.viewer.exportSlug || config.tree.id,

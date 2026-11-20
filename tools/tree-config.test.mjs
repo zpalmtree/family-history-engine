@@ -63,7 +63,8 @@ test("TREE_CONFIG_PATH overrides the repository file", () => {
   assert.equal(config.tree.id, "other");
 });
 
-test("this repository's own tree.config.json is valid", () => {
+// The engine repository itself has no tree.config.json; a tree always does.
+test("this repository's own tree.config.json is valid", { skip: !fs.existsSync(path.join(engineRoot, "tree.config.json")) && "engine without a tree" }, () => {
   const config = loadTreeConfig({ env: {}, fresh: true });
   assert.ok(config.tree.rootPersonIds.length > 0, "the checked-in tree names its root people");
 });

@@ -13,7 +13,7 @@ import { privacyRestriction } from "./page-depth-core.mjs";
 
 // In the order a page shows them.
 export const exhibitKinds = Object.freeze([
-  "arms", "herald-ruling", "monument", "grave", "signature", "ship", "place", "trade", "print", "context"
+  "portrait", "arms", "herald-ruling", "monument", "grave", "signature", "ship", "place", "trade", "print", "context"
 ]);
 const REAL_PLACE_ROLES = [...placeRoles].filter((role) => role !== "associated");
 // What an established, dated fact with a place says the place was to the person.
@@ -46,6 +46,17 @@ const TOP_LEVEL = new Set([
 const filled = (value) => typeof value === "string" && value.trim().length > 0;
 const isDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
 const isFraction = (value) => typeof value === "number" && value >= 0 && value <= 1;
+const hasLivingPortraitApproval = (exhibit, person) =>
+  exhibit.kind === "portrait" && isDate(person?.livingPhotoApprovedAt);
+
+function personLinkForRecord(record, personId, sourcesById) {
+  const source = sourcesById.get(record?.sourceAtomId || record?.id);
+  return source?.personLinks?.find((item) => item.personId === personId);
+}
+
+function canShowImage(record) {
+  return record?.viewer?.approved === true && record.rights === "family-viewer-approved" && record.privacy !== "restricted";
+}
 
 export function validateExhibits(exhibits, { store, records, generations = new Map() }) {
   const issues = [];
@@ -55,11 +66,7 @@ export function validateExhibits(exhibits, { store, records, generations = new M
   // An exhibit shows a record as this person's own, so the record's link to the
   // person must be a confirmed identification. A candidate match belongs to the
   // research question until it is reviewed.
-  const unconfirmedLink = (recordId, personId) => {
-    const record = recordsById.get(recordId);
-    const link = (sourcesById.get(record?.sourceAtomId || record?.id)?.personLinks || []).find((item) => item.personId === personId);
-    return Boolean(link) && link.identificationStatus !== "confirmed";
-  };
+  const personLink = (recordId, personId) => personLinkForRecord(recordsById.get(recordId), personId, sourcesById);
   const seen = new Set();
   for (const exhibit of exhibits) {
     const label = `exhibit ${exhibit?.id || "(no id)"}`;
@@ -86,10 +93,11 @@ export function validateExhibits(exhibits, { store, records, generations = new M
     }
 
     if (!exhibit.image && !exhibit.drawing && !filled(exhibit.text)) issues.push(`${label}: needs an image, a drawing or text`);
+    if (exhibit.kind === "portrait" && !exhibit.image) issues.push(`${label}: portrait requires an approved image`);
     if (exhibit.image) {
       const record = recordsById.get(exhibit.image.recordId);
       if (!(recordIds || []).includes(exhibit.image.recordId)) issues.push(`${label}: image record must be listed in recordIds`);
-      else if (!record?.viewer?.approved || record.rights !== "family-viewer-approved") {
+      else if (!canShowImage(record)) {
         issues.push(`${label}: image record ${exhibit.image.recordId} is not approved for the family viewer`);
       } else if (!/^image\//.test(record.mediaType || "")) {
         issues.push(`${label}: image record ${exhibit.image.recordId} is ${record.mediaType}; an exhibit image must be an image master`);
@@ -122,7 +130,7 @@ export function validateExhibits(exhibits, { store, records, generations = new M
       if (!["people", "places", "occupations"].includes(key)) issues.push(`${label}: unknown appliesTo rule ${key}`);
     }
     // Arms belong to the people a source blazons them for, never to a surname or a place.
-    if (["arms", "herald-ruling", "signature", "grave"].includes(exhibit.kind) && (places.length || occupations.length)) {
+    if (["portrait", "arms", "herald-ruling", "signature", "grave"].includes(exhibit.kind) && (places.length || occupations.length)) {
       issues.push(`${label}: ${exhibit.kind} is linked to named people only`);
     }
     const listed = new Set();
@@ -136,10 +144,19 @@ export function validateExhibits(exhibits, { store, records, generations = new M
       listed.add(entry.personId);
       if ((bundle.researchScope || "main") !== "main") issues.push(`${label}: ${entry.personId} is outside the main scope`);
       if (entry.note != null && !filled(entry.note)) issues.push(`${label}: note for ${entry.personId} must not be empty`);
+      if (entry.livingPhotoApprovedAt != null && !hasLivingPortraitApproval(exhibit, entry)) {
+        issues.push(`${label}: living photo approval requires a portrait and date (YYYY-MM-DD)`);
+      }
       const restriction = privacyRestriction(bundle, generations.has(entry.personId) ? generations.get(entry.personId) : null);
-      if (restriction === "living") issues.push(`${label}: ${entry.personId} may be living`);
+      if (restriction === "living" && !hasLivingPortraitApproval(exhibit, entry)) {
+        issues.push(`${label}: ${entry.personId} may be living`);
+      }
+      if (exhibit.kind === "portrait" && personLink(exhibit.image?.recordId, entry.personId)?.identificationStatus !== "confirmed") {
+        issues.push(`${label}: portrait image requires a confirmed source link to ${entry.personId}`);
+      }
       for (const recordId of Array.isArray(recordIds) ? recordIds : []) {
-        if (unconfirmedLink(recordId, entry.personId)) {
+        const link = personLink(recordId, entry.personId);
+        if (link && link.identificationStatus !== "confirmed") {
           issues.push(`${label}: record ${recordId} is only a candidate match for ${entry.personId}; the identification must be confirmed first`);
         }
       }
@@ -160,6 +177,7 @@ export function validateExhibits(exhibits, { store, records, generations = new M
  */
 export function projectExhibits(exhibits, { store, records, generations = new Map() }) {
   const recordsById = new Map(records.map((record) => [record.id, record]));
+  const sourcesById = new Map((store.sources || []).map((source) => [source.id, source]));
   const byPerson = new Map();
   const reach = (personId, exhibit, note) => {
     if (!byPerson.has(personId)) byPerson.set(personId, new Map());
@@ -172,7 +190,6 @@ export function projectExhibits(exhibits, { store, records, generations = new Ma
     if ((bundle.researchScope || "main") !== "main") continue;
     const personId = bundle.personId;
     const restriction = privacyRestriction(bundle, generations.has(personId) ? generations.get(personId) : null);
-    if (restriction === "living") continue;
     const local = new Map((bundle.assertions || []).map((assertion) => [assertion.id, assertion]));
     const active = (id) => {
       const assertion = local.get(id);
@@ -193,6 +210,15 @@ export function projectExhibits(exhibits, { store, records, generations = new Ma
     for (const exhibit of ordered) {
       const rules = exhibit.appliesTo || {};
       const named = (rules.people || []).find((entry) => entry.personId === personId);
+      if (exhibit.kind === "portrait") {
+        const record = recordsById.get(exhibit.image?.recordId);
+        if (named && (restriction !== "living" || hasLivingPortraitApproval(exhibit, named))
+          && canShowImage(record) && personLinkForRecord(record, personId, sourcesById)?.identificationStatus === "confirmed") {
+          reach(personId, exhibit, named.note);
+        }
+        continue;
+      }
+      if (restriction === "living") continue;
       if (named) reach(personId, exhibit, named.note);
       for (const place of rules.places || []) {
         const roles = place.roles?.length ? place.roles : REAL_PLACE_ROLES;
@@ -213,10 +239,7 @@ export function projectExhibits(exhibits, { store, records, generations = new Ma
 
   const projected = ordered.map((exhibit) => {
     // The viewer can open only what is published to it.
-    const openable = (exhibit.recordIds || []).filter((id) => {
-      const record = recordsById.get(id);
-      return record?.viewer?.approved === true && record.rights === "family-viewer-approved" && record.privacy !== "restricted";
-    });
+    const openable = (exhibit.recordIds || []).filter((id) => canShowImage(recordsById.get(id)));
     return {
       id: exhibit.id,
       kind: exhibit.kind,

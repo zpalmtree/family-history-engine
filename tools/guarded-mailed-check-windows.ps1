@@ -1,6 +1,12 @@
 param(
-  [ValidateSet("status", "save-clipboard", "configure", "send", "selftest")]
+  [ValidateSet("status", "save-clipboard", "save-from-tab", "rehearsal-setup", "configure", "send", "selftest")]
   [string]$Mode = "status",
+  # save-from-tab: the shared-Chrome tab showing Lob's own API Keys page, and
+  # which of its two secret keys to store.
+  [ValidatePattern('^([A-F0-9]{32})?$')]
+  [string]$TargetId = "",
+  [ValidateSet("test", "live")]
+  [string]$KeyEnvironment = "test",
   # configure: which of the account's saved objects to use (opaque Lob ids).
   [ValidatePattern('^(bank_[A-Za-z0-9]{6,40})?$')]
   [string]$BankAccount = "",
@@ -20,6 +26,11 @@ param(
 # number, a date and the payee's name.
 #
 #   -Mode save-clipboard   store the API key now on the clipboard (test_ or live_)
+#   -Mode save-from-tab    store the test or live key straight from Lob's own API
+#                          Keys page in one exact tab (the key is never shown)
+#   -Mode rehearsal-setup  with a test_ key only: make the test environment's own
+#                          sample bank account and return address, so a cheque
+#                          can be rehearsed before anything real exists
 #   -Mode configure        choose the verified bank account and the return address
 #   -Mode status           what is configured (no secrets)
 #   -Mode send             stdin: {"idempotencyKey": "...", "check": {...}} from the Node helper
@@ -68,8 +79,11 @@ function Get-Environment([string]$Key) { if ($Key -like "live_*") { "live" } els
 function Get-Sender($Address) {
   $lines = @($Address.address_line1, $Address.address_line2) | Where-Object { $_ }
   $place = (@($Address.address_city, $Address.address_state) | Where-Object { $_ }) -join ", "
+  # Lob keeps names in capitals; a letter is signed in ordinary case.
+  $name = [string]$Address.name
+  if ($name -ceq $name.ToUpperInvariant()) { $name = [Globalization.CultureInfo]::InvariantCulture.TextInfo.ToTitleCase($name.ToLowerInvariant()) }
   @{
-    sender_name = [string]$Address.name
+    sender_name = $name
     sender_email = [string]$Address.email
     sender_address = ((@($lines) + @(($place + " " + $Address.address_zip).Trim())) -join ", ")
     letter_date = (Get-Date).ToString("d MMMM yyyy", [Globalization.CultureInfo]::InvariantCulture)
@@ -113,15 +127,35 @@ try {
     @{ provider = "lob"; keyStored = (Test-Path -LiteralPath $keyPath); environment = $environment; bankAccount = [bool]$settings.bankAccount; fromAddress = [bool]$settings.fromAddress } | ConvertTo-Json -Compress
     exit 0
   }
-  if ($Mode -eq "save-clipboard") {
-    $key = (Get-Clipboard -Raw).Trim()
+  if ($Mode -in @("save-clipboard", "save-from-tab")) {
+    if ($Mode -eq "save-from-tab") {
+      if (-not $TargetId) { throw "The tab is required" }
+      $ws = New-Object System.Net.WebSockets.ClientWebSocket
+      $ct = [Threading.CancellationToken]::None
+      $ws.ConnectAsync([Uri]"ws://127.0.0.1:9226/devtools/page/$TargetId", $ct).Wait()
+      try {
+        $expression = "(() => { if (location.hostname !== 'dashboard.lob.com') return ''; const el = document.getElementById('$KeyEnvironment-api-key'); return el ? el.value : ''; })()"
+        $message = @{ id = 1; method = "Runtime.evaluate"; params = @{ expression = $expression; returnByValue = $true } } | ConvertTo-Json -Depth 5 -Compress
+        $ws.SendAsync([ArraySegment[byte]]$utf8.GetBytes($message), [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $ct).Wait()
+        $key = ""
+        while (-not $key) {
+          $buffer = New-Object byte[] 65536; $builder = New-Object System.Text.StringBuilder
+          do { $received = $ws.ReceiveAsync([ArraySegment[byte]]$buffer, $ct).Result; [void]$builder.Append($utf8.GetString($buffer, 0, $received.Count)) } until ($received.EndOfMessage)
+          $response = $builder.ToString() | ConvertFrom-Json
+          if ($response.id -eq 1) { $key = [string]$response.result.result.value; break }
+        }
+      } finally { $ws.Dispose() }
+      if (-not $key.StartsWith("${KeyEnvironment}_")) { throw "Invalid credential" }
+    } else {
+      $key = (Get-Clipboard -Raw).Trim()
+    }
     if ($key -notmatch '^(test|live)_[A-Za-z0-9]{16,120}$') { throw "Invalid credential" }
     $plainBytes = $utf8.GetBytes($key)
     $protectedBytes = [System.Security.Cryptography.ProtectedData]::Protect($plainBytes, $entropy, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
     New-Item -ItemType Directory -Force -Path $profileDirectory | Out-Null
     [System.IO.File]::WriteAllText($keyPath, [Convert]::ToBase64String($protectedBytes), [System.Text.Encoding]::ASCII)
     [Array]::Clear($plainBytes, 0, $plainBytes.Length)
-    if ((Get-Clipboard -Raw).Trim() -eq $key) { Set-Clipboard -Value $null }
+    if ($Mode -eq "save-clipboard" -and (Get-Clipboard -Raw).Trim() -eq $key) { Set-Clipboard -Value $null }
     # A different key may belong to a different account: its saved objects are chosen again.
     if (Test-Path -LiteralPath $settingsPath) { Remove-Item -LiteralPath $settingsPath -Force }
     @{ keyStored = $true; environment = (Get-Environment $key) } | ConvertTo-Json -Compress
@@ -138,6 +172,21 @@ try {
     $key = Read-Key
   }
 
+  if ($Mode -eq "rehearsal-setup") {
+    # Test environment only: Lob's own sample bank numbers and a sample address.
+    # Nothing here is the user's, nothing can be posted, and no money can move.
+    if ((Get-Environment $key) -ne "test") { throw "Invalid environment for a rehearsal" }
+    $existingBanks = @((Invoke-Lob $base $key "Get" "/bank_accounts?limit=20" $null "").data | Where-Object { $_.verified -and -not $_.deleted })
+    if (-not $existingBanks.Count) {
+      $bank = Invoke-Lob $base $key "Post" "/bank_accounts" @{ description = "rehearsal bank account"; routing_number = "322271627"; account_number = "123456789"; signatory = "Rehearsal Signatory"; account_type = "individual" } ""
+      [void](Invoke-Lob $base $key "Post" ("/bank_accounts/" + $bank.id + "/verify") @{ amounts = @(25, 63) } "")
+    }
+    $existingAddresses = @((Invoke-Lob $base $key "Get" "/addresses?limit=20" $null "").data | Where-Object { -not $_.deleted })
+    if (-not $existingAddresses.Count) {
+      [void](Invoke-Lob $base $key "Post" "/addresses" @{ description = "rehearsal return address"; name = "Rehearsal Sender"; email = "rehearsal@example.org"; address_line1 = "210 King St"; address_city = "San Francisco"; address_state = "CA"; address_zip = "94107"; address_country = "US" } "")
+    }
+    $Mode = "configure"
+  }
   # The one verified bank account and the one saved address, unless named.
   $banks = @((Invoke-Lob $base $key "Get" "/bank_accounts?limit=20" $null "").data | Where-Object { $_.verified -and -not $_.deleted })
   $addresses = @((Invoke-Lob $base $key "Get" "/addresses?limit=20" $null "").data | Where-Object { -not $_.deleted })

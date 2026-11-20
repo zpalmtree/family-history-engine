@@ -103,3 +103,14 @@ The engine was separated from the tree it was first built for in stages. These p
 - The flag and country list (`tools/place-labels.mjs`, `assets/flags/`) covers seven countries (England, Germany, Ireland, Italy, Scotland, United States, Wales).
 - Browser automation, credential storage and mailbox reading require Windows Chrome over CDP from WSL, Windows DPAPI and the PowerShell wrappers.
 - Provider integrations (Ancestry, Findmypast, FamilySearch, GRO, TNA, Archion and others) are built into `tools/` rather than separate plug-ins.
+
+## Publishing the engine
+
+A tree that maintains the public engine names it in `tree.config.json` (`engineExport.publicRepo`, `owner/name`). The engine is never pushed from a tree repository, whose history holds the tree. To release:
+
+```sh
+npm run engine:release -- --message "<what changed>"          # dry run: shows the change
+npm run engine:release -- --message "<what changed>" --push   # commits and pushes it
+```
+
+The release builds the export from `HEAD` and refuses if its privacy gate finds any person, family term or owner identifier from the tree. Anything new that belongs only to the tree goes in `tree.config.json` `engineExport` (`exclude`, `dropSteps`, `rewrite`, `privateTerms`), never into the public repository.

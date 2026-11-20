@@ -21,7 +21,7 @@ const privacyLevels = new Set(["private", "public", "restricted"]);
 const eventTypes = new Set(["birth", "baptism", "death", "burial", "marriage"]);
 const parentRoles = new Set(["father", "mother"]);
 const lifeStatuses = new Set(["living", "deceased", "unknown"]);
-const ancestryOrigins = new Set(["England", "Germany", "Ireland", "Italy", "Scotland", "United States", "Wales"]);
+const ancestryOrigins = placeCountries;
 
 if (familyData.schemaVersion !== 6) {
   issues.push(`unsupported generated schemaVersion: ${familyData.schemaVersion}`);

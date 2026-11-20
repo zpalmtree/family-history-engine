@@ -102,7 +102,9 @@ export function sendMailedCheck(request, { bridge = runBridge, record, log = con
   } else if (outcome.status === "rehearsed") {
     log(`Rehearsed with the test key: Lob rendered a $${authorization.amount.toFixed(2)} cheque to ${payee} and posted nothing. No payment was recorded.`);
   } else {
-    log(`The result is uncertain (${outcome.reason}). The request is held as started; look the cheque up in Lob by its idempotency key before anything is retried.`);
+    log(live
+      ? `The result is uncertain (${outcome.reason}). The request is held as started; look the cheque up in Lob by its idempotency key before anything is retried.`
+      : `The rehearsal's result is uncertain (${outcome.reason}); nothing was posted or recorded.`);
   }
   return { requestId: request.id, payee, amount: authorization.amount, ...outcome };
 }

@@ -1,0 +1,36 @@
+name: Engine checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-tree:
+    name: Start a tree from the fixture GEDCOM and check it
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Engine tests
+        run: npm run engine:test
+      - name: Start the fixture tree
+        run: |
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.invalid"
+          node tools/tree-init.mjs --dir "$RUNNER_TEMP/fixture-tree" --id fixture-family --title "Fixture Family" --gedcom tools/fixtures/fixture-tree.ged --link-node-modules
+      - name: Build and check the tree
+        working-directory: ${{ runner.temp }}/fixture-tree
+        run: |
+          npm run build
+          node tools/check-new-tree.mjs
+          npm run data:check
+          npm run tree:check:full
+          npm run site:stage

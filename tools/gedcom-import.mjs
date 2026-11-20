@@ -14,7 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { childValue, children, indexRecords, parseGedcom, parseName } from "./gedcom.mjs";
-import { placeCountries } from "./place-labels.mjs";
+import { countryCodes, placeCountries } from "./place-labels.mjs";
 
 const EVENT_TYPES = { BIRT: "birth", CHR: "baptism", BAPM: "baptism", DEAT: "death", BURI: "burial" };
 const PLACE_ROLES = { birth: "birthplace", baptism: "baptism-place", death: "death-place", burial: "burial-place" };
@@ -44,7 +44,7 @@ function countryOf(place) {
   const last = String(place || "").split(",").map((part) => part.trim()).filter(Boolean).at(-1) || "";
   const aliases = { USA: "United States", "United States of America": "United States", US: "United States", UK: null };
   const country = Object.hasOwn(aliases, last) ? aliases[last] : last;
-  return country && placeCountries.has(country) ? country : null;
+  return country && (placeCountries.has(country) || extraCountries.has(country)) ? country : null;
 }
 
 function evidence(sourceId, rationale) {
@@ -55,7 +55,27 @@ function candidate(id, claim, conclusion, sourceId, extra = {}) {
   return { id, assessment: "candidate", claim, conclusion, limitations: LIMITATION, evidence: evidence(sourceId, "The imported family-tree file records this fact; its own source is not identified."), questionIds: [], ...extra };
 }
 
-export function planImport(text, { fileName = "family.ged", branchId = "imported-tree", today = new Date().toISOString().slice(0, 10), existingIds = new Set(), treeAddedAt = null } = {}) {
+// Countries the import should accept beyond the configured ones (tree-init
+// passes the countries it found in the file and writes them to the config).
+let extraCountries = new Set();
+
+// The last part of each place in the file that names a country the engine
+// knows a code for, or that a tree has configured.
+export function countriesInGedcom(text) {
+  const found = new Set();
+  for (const record of indexRecords(parseGedcom(text)).individuals) {
+    for (const tag of Object.keys(EVENT_TYPES)) {
+      for (const event of children(record, tag)) {
+        const last = childValue(event, "PLAC").split(",").map((part) => part.trim()).filter(Boolean).at(-1);
+        if (last && (countryCodes[last] || placeCountries.has(last))) found.add(last);
+      }
+    }
+  }
+  return [...found].sort();
+}
+
+export function planImport(text, { fileName = "family.ged", branchId = "imported-tree", today = new Date().toISOString().slice(0, 10), existingIds = new Set(), treeAddedAt = null, countries = [] } = {}) {
+  extraCountries = new Set(countries);
   const index = indexRecords(parseGedcom(text));
   const sourceId = `imported-gedcom-${slugify(path.basename(fileName, path.extname(fileName)))}`;
   const ids = new Map();

@@ -2046,6 +2046,10 @@
               </div>
               <section class="tree-person-dialog-panel" id="tree-person-dialog-panel-overview" data-person-dialog-panel="overview" role="tabpanel" aria-labelledby="tree-person-dialog-tab-overview">
                 <section class="person-section tree-person-life-story" id="tree-person-dialog-story" aria-label="Life story"></section>
+                <section class="person-section" id="tree-person-dialog-portraits-section" aria-labelledby="tree-person-portraits-heading" hidden>
+                  <h4 id="tree-person-portraits-heading">Photographs</h4>
+                  <div class="person-exhibits" id="tree-person-dialog-portraits"></div>
+                </section>
                 <section class="person-section" id="tree-person-dialog-exhibits-section" aria-labelledby="tree-person-exhibits-heading" hidden>
                   <h4 id="tree-person-exhibits-heading">What survives</h4>
                   <div class="person-exhibits" id="tree-person-dialog-exhibits"></div>
@@ -2417,18 +2421,47 @@
       Italy: "it",
       Scotland: "scotland",
       "United States": "us",
-      Wales: "wales"
+      Wales: "wales",
+      // Countries this tree adds in tree.config.json places.countries.
+      ...Object.fromEntries((familyData.viewerProfile?.countries || [])
+        .map((entry) => [entry.name, entry.flag || entry.name.slice(0, 2).toLowerCase()]))
     });
+    // Flag artwork the engine ships; any other country shows its code.
+    const flagArtwork = new Set(familyData.viewerProfile?.flagArtwork || ["england", "de", "ie", "it", "scotland", "us", "wales"]);
+    function codeBadgeSource(code) {
+      const label = String(code).replace(/^[a-z]{2}-/, "").slice(0, 3).toUpperCase();
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30"><rect width="40" height="30" fill="#d9d0bf"/><text x="20" y="22" font-family="sans-serif" font-size="18" font-weight="800" text-anchor="middle" fill="#1f2622">${label}</text></svg>`;
+      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    }
     // Flag images: take the base path (and cache-busting query) from the key's
     // own flag, which the hosted build rewrites, so script-built flags match.
     let flagTemplate = null;
     function flagSource(origin) {
+      if (!flagArtwork.has(originFlags[origin])) return codeBadgeSource(originFlags[origin] || origin);
       flagTemplate ||= document.querySelector(".tree-key img.flag-icon")?.getAttribute("src") || "assets/flags/england.svg";
       return flagTemplate.replace(/[^/?]+\.svg/, `${originFlags[origin]}.svg`);
     }
     const documentedOriginSet = new Set(familyData.people
       .flatMap((person) => [text(person.ancestryOrigin).trim(), text(person.probableOrigin).trim()])
       .filter((origin) => originFlags[origin]));
+    // A key entry for each country the tree adds (browser only: the data
+    // checks run this part of the page without a document).
+    if (typeof document !== "undefined") {
+      let lastKey = [...document.querySelectorAll("[data-origin-key]")].at(-1);
+      for (const entry of familyData.viewerProfile?.countries || []) {
+        if (document.querySelector(`[data-origin-key="${CSS.escape(entry.name)}"]`)) continue;
+        const key = document.createElement("span");
+        key.className = "tree-origin-key";
+        key.dataset.originKey = entry.name;
+        const image = document.createElement("img");
+        image.className = "flag-icon";
+        image.src = flagSource(entry.name);
+        image.alt = "";
+        key.append(image, entry.name);
+        lastKey?.after(key);
+        lastKey = key;
+      }
+    }
     for (const key of document.querySelectorAll("[data-origin-key]")) {
       key.hidden = !documentedOriginSet.has(key.dataset.originKey);
     }
@@ -4125,9 +4158,21 @@
     function renderPersonExhibits(person) {
       const entries = (person.exhibits || []).filter((entry) => exhibitsById.has(entry.id));
       const groups = [
-        ["#tree-person-dialog-exhibits", entries.filter((entry) => !contextExhibitKinds.has(exhibitsById.get(entry.id).kind))],
-        ["#tree-person-dialog-world", entries.filter((entry) => contextExhibitKinds.has(exhibitsById.get(entry.id).kind))]
+        ["#tree-person-dialog-portraits", []],
+        ["#tree-person-dialog-exhibits", []],
+        ["#tree-person-dialog-world", []]
       ];
+      for (const entry of entries) {
+        const { kind } = exhibitsById.get(entry.id);
+        if (kind === "portrait") {
+          // A withheld or missing master cannot leave a portrait caption behind.
+          if (exhibitImage(exhibitsById.get(entry.id))) groups[0][1].push(entry);
+        } else if (contextExhibitKinds.has(kind)) {
+          groups[2][1].push(entry);
+        } else {
+          groups[1][1].push(entry);
+        }
+      }
       for (const [selector, items] of groups) {
         const host = document.querySelector(selector);
         host.innerHTML = items.map(exhibitHtml).join("");
@@ -5961,10 +6006,21 @@
         const view = getTreeView();
         const upTo = (generation) => getViewNodes(familyData.visualTree, view)
           .filter((node) => node.generation <= generation).map((node) => node.personId);
-        const fits = Array.from({ length: view.core?.generations || 0 },
-          (unused, index) => peopleFitTarget(upTo(index + 1), 0.85, index < 2 ? 0.55 : 0.5))
-          .filter((fit) => fit && fit.scale >= 0.45);
-        target = fits.at(-1) || peopleFitTarget(homePersonIds, 0.85, 0.6);
+        const depth = view.core?.generations || 0;
+        let shown = depth;
+        while (shown > 0 && !target) {
+          const fit = peopleFitTarget(upTo(shown), 0.85, shown < 3 ? 0.55 : 0.5);
+          if (fit && fit.scale >= 0.45) target = fit;
+          else shown -= 1;
+        }
+        // The core's next row up is too wide to show whole, but where it
+        // fits in height at much the same scale, the view is placed to show
+        // it uncut from top to bottom (its outer cards run off the sides).
+        if (target && shown < depth) {
+          const taller = peopleFitTarget(upTo(shown), 0.85, 0.5, upTo(shown + 1));
+          if (taller && taller.scale >= 0.45 && taller.scale >= target.scale * 0.9) target = taller;
+        }
+        target ||= peopleFitTarget(homePersonIds, 0.85, 0.6);
       }
       else if (focus.fit) target = peopleFitTarget(targetIds, focus.maxScale ?? 0.9, focus.anchorY);
       else target = focusTreeTarget(targetIds, focus.scale, focus.anchorX, focus.anchorY);
@@ -5983,7 +6039,9 @@
 
     // A readable window on the given people: they fill the visible part of
     // the map at the largest scale up to maxScale.
-    function peopleFitTarget(personIds, maxScale = 0.9, anchorY = 0.5) {
+    // With rowIds, the height fitted is that of those people's rows (a
+    // taller group); the width is still that of personIds.
+    function peopleFitTarget(personIds, maxScale = 0.9, anchorY = 0.5, rowIds = null) {
       const viewport = document.querySelector("#visual-tree-viewport");
       const chart = familyData.visualTree;
       const view = getTreeView();
@@ -5993,8 +6051,9 @@
       if (!viewport?.clientWidth || !viewport.clientHeight || !targets.length) return null;
       const left = Math.min(...targets.map((node) => node.x + metrics.labelGutter));
       const right = Math.max(...targets.map((node) => node.x + metrics.labelGutter + chart.nodeWidth));
-      const top = Math.min(...targets.map((node) => node.y));
-      const bottom = Math.max(...targets.map((node) => node.y + chart.nodeHeight));
+      const rows = rowIds ? getViewNodes(chart, view).filter((node) => rowIds.includes(node.personId)) : targets;
+      const top = Math.min(...rows.map((node) => node.y));
+      const bottom = Math.max(...rows.map((node) => node.y + chart.nodeHeight));
       // On phones the zoom bar and the locator float over the bottom of the map.
       const usableHeight = viewport.clientHeight - mapBottomInset();
       const width = mapVisibleWidth(viewport);

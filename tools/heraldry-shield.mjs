@@ -5,6 +5,8 @@
 // what the renderer can draw faithfully is accepted: a coat it cannot draw is shown
 // as its printed blazon instead, never approximated.
 
+import { chargeArt } from "./heraldry-charges.mjs";
+
 export const tinctures = Object.freeze({
   or: "#efc12f",
   argent: "#ffffff",
@@ -18,9 +20,12 @@ export const tinctures = Object.freeze({
 const WIDTH = 400;
 const HEIGHT = 480;
 const OUTLINE = "M20,20 H380 V250 C380,370 290,440 200,470 C110,440 20,370 20,250 Z";
-const ORDINARIES = new Set(["chevron", "bend", "fess", "pale"]);
-const CHARGES = new Set(["buckle", "mullet", "mascle", "crescent", "lozenge", "roundel"]);
-const ARRANGEMENTS = new Set(["two-and-one", "on-ordinary", "centre"]);
+const ORDINARIES = new Set(["chevron", "bend", "fess", "pale", "two-bars", "cross-patonce"]);
+const CHARGES = new Set(["buckle", "mullet", "mascle", "crescent", "lozenge", "roundel", ...Object.keys(chargeArt)]);
+const ARRANGEMENTS = new Set(["two-and-one", "on-ordinary", "centre", "in-chief", "in-cross", "three-three-one", "four-three-two-one"]);
+// Arrangements that set out a fixed number of charges in rows: the count each takes.
+const ROW_COUNTS = Object.freeze({ "three-three-one": 7, "four-three-two-one": 10 });
+const FIXED_COUNTS = Object.freeze({ "in-cross": 5 });
 
 const number = (value) => Math.round(value * 100) / 100;
 
@@ -45,6 +50,10 @@ export function validateShield(coat, label = "shield") {
       if (!Number.isInteger(field.paly) || field.paly < 2 || field.paly > 12) issues.push(`${label}: paly takes 2 to 12 pieces`);
       if (!Array.isArray(field.tinctures) || field.tinctures.length !== 2) issues.push(`${label}: paly takes two tinctures`);
       else field.tinctures.forEach((value) => tincture(value, "paly"));
+    } else if (field.gyronny) {
+      if (field.gyronny !== 8) issues.push(`${label}: gyronny is drawn of eight pieces only`);
+      if (!Array.isArray(field.tinctures) || field.tinctures.length !== 2) issues.push(`${label}: gyronny takes two tinctures`);
+      else field.tinctures.forEach((value) => tincture(value, "gyronny"));
     } else if (field.tincture) tincture(field.tincture, "field");
     else issues.push(`${label}: field needs a tincture, a fur or paly`);
     if (coat.ordinary) {
@@ -52,20 +61,43 @@ export function validateShield(coat, label = "shield") {
       tincture(coat.ordinary.tincture, "ordinary");
     }
     for (const charge of coat.charges || []) {
+      for (const key of Object.keys(charge.charged || {})) if (!["type", "tincture", "at"].includes(key)) issues.push(`${label}: unknown key ${key} on a carried charge`);
       if (!CHARGES.has(charge.type)) issues.push(`${label}: cannot draw charge ${charge.type}`);
       tincture(charge.tincture, `charge ${charge.type}`);
+      if (charge.charged) {
+        if (charge.arrangement !== "centre") issues.push(`${label}: only a charge in the centre can carry another`);
+        if (!CHARGES.has(charge.charged.type)) issues.push(`${label}: cannot draw charge ${charge.charged.type}`);
+        tincture(charge.charged.tincture, `charge on the ${charge.type}`);
+      }
       if (!ARRANGEMENTS.has(charge.arrangement)) issues.push(`${label}: unknown arrangement ${charge.arrangement}`);
       if (charge.arrangement === "on-ordinary" && !coat.ordinary) issues.push(`${label}: charges on an ordinary need the ordinary`);
-      if (charge.arrangement !== "centre" && charge.count !== 3) issues.push(`${label}: ${charge.arrangement} takes three charges`);
+      const wanted = ROW_COUNTS[charge.arrangement] ?? FIXED_COUNTS[charge.arrangement] ?? (charge.arrangement === "centre" ? null : 3);
+      const single = charge.arrangement === "on-ordinary" && charge.count === 1;
+      if (wanted !== null && !single && charge.count !== wanted) issues.push(`${label}: ${charge.arrangement} takes ${wanted === 3 ? "three" : wanted} charges`);
     }
   }
   if (coat.bordure) tincture(coat.bordure.tincture, "bordure");
+  if (coat.label) tincture(coat.label.tincture, "label");
+  if (coat.chief) {
+    if (coat.chief.vair) {
+      if (!Array.isArray(coat.chief.vair) || coat.chief.vair.length !== 2) issues.push(`${label}: a vair chief takes two tinctures`);
+      else coat.chief.vair.forEach((value) => tincture(value, "chief vair"));
+    } else tincture(coat.chief.tincture, "chief");
+  }
+  if (coat.canton) {
+    if (coat.canton.fur) { if (coat.canton.fur !== "ermine") issues.push(`${label}: only an ermine canton can be drawn as a fur`); }
+    else tincture(coat.canton.tincture, "canton");
+  }
+  if (coat.overall) {
+    if (coat.overall.type !== "bendlet") issues.push(`${label}: cannot draw ${coat.overall.type} over all`);
+    tincture(coat.overall.tincture, "over all");
+  }
   if (coat.difference) {
     if (coat.difference.type !== "crescent") issues.push(`${label}: cannot draw difference ${coat.difference.type}`);
     tincture(coat.difference.tincture, "difference");
   }
   for (const key of Object.keys(coat)) {
-    if (!["quarterly", "impaled", "field", "ordinary", "charges", "bordure", "difference"].includes(key)) {
+    if (!["quarterly", "impaled", "field", "chief", "ordinary", "charges", "canton", "overall", "bordure", "label", "difference"].includes(key)) {
       issues.push(`${label}: unknown key ${key}`);
     }
   }
@@ -103,12 +135,18 @@ function drawCoat(coat, region, id) {
     body = coat.impaled.map((half, index) => clipped(drawCoat(half, cells[index], `${id}i${index}`), cells[index], `${id}i${index}`)).join("")
       + `<path d="M200,0 V${HEIGHT}" stroke="#141414" stroke-width="2.5" fill="none"/>`;
   } else {
-    body = drawField(coat.field) + drawOrdinary(coat.ordinary) + (coat.charges || []).map((charge) => drawCharges(charge, coat)).join("");
+    // An impaled half is squeezed to half its width; its charges are drawn at an even
+    // smaller size and their rows drawn together, so a roundel stays round.
+    const squeeze = Math.abs(sx / sy - 1) > 0.1 ? sx / sy : 1;
+    body = drawField(coat.field) + drawChief(coat.chief) + drawOrdinary(coat.ordinary)
+      + (coat.charges || []).map((charge) => drawCharges(charge, coat, squeeze)).join("")
+      + drawCanton(coat.canton) + drawOverall(coat.overall);
   }
   if (coat.bordure) {
     body += `<path d="${OUTLINE}" fill="none" stroke="${tinctures[coat.bordure.tincture]}" stroke-width="56"/>`
       + `<path d="M48,48 H352 V250 C352,352 276,414 200,440 C124,414 48,352 48,250 Z" fill="none" stroke="#141414" stroke-width="2"/>`;
   }
+  if (coat.label) body += label(coat.label.tincture);
   if (coat.difference) body += `<g transform="translate(200,${coat.quarterly ? 230 : 96})">${crescent(coat.difference.tincture, 1.5)}</g>`;
   return `${open}${body}</g>`;
 }
@@ -127,6 +165,15 @@ function drawField(field) {
     }
     return `<rect width="${WIDTH}" height="${HEIGHT}" fill="${tinctures.argent}"/><g fill="${tinctures.sable}">${spots}</g>`;
   }
+  if (field.gyronny) {
+    // Eight wedges meeting at the fess point, the first in the dexter chief.
+    const centre = [200, 215];
+    const corners = [[200, -10], [410, -10], [410, 215], [410, 490], [200, 490], [-10, 490], [-10, 215], [-10, -10]];
+    return corners.map((point, index) => {
+      const next = corners[(index + 1) % 8];
+      return `<path d="M${centre} L${point} L${next} Z" fill="${tinctures[field.tinctures[(index + 1) % 2]]}"/>`;
+    }).join("");
+  }
   if (field.paly) {
     const stripe = WIDTH / field.paly;
     return Array.from({ length: field.paly }, (_, index) =>
@@ -141,13 +188,91 @@ function drawOrdinary(ordinary) {
   if (ordinary.type === "chevron") return `<path d="M-10,330 L200,150 L410,330 L410,400 L200,222 L-10,400 Z" ${fill}/>`;
   if (ordinary.type === "bend") return `<path d="M-20,30 L50,-30 L420,410 L350,470 Z" ${fill}/>`;
   if (ordinary.type === "fess") return `<rect x="-10" y="170" width="420" height="96" ${fill}/>`;
+  if (ordinary.type === "two-bars") return `<rect x="-10" y="150" width="420" height="58" ${fill}/><rect x="-10" y="274" width="420" height="58" ${fill}/>`;
+  if (ordinary.type === "cross-patonce") return crossPatonce(ordinary.tincture);
   return `<rect x="152" y="-10" width="96" height="500" ${fill}/>`;
 }
 
-function drawCharges(charge, coat) {
-  const draw = { buckle, mullet, mascle, crescent, lozenge, roundel }[charge.type];
+// Rows of charges, centred: for mascles the rows touch point to point (conjoined).
+function rowPositions(rows, charge) {
+  const mascled = ["mascle", "lozenge"].includes(charge.type);
+  const across = mascled ? 64 : 76;
+  const down = mascled ? 87 : 80;
+  const top = 230 - ((rows.length - 1) * down) / 2;
+  return rows.flatMap((count, row) => Array.from({ length: count }, (_, index) =>
+    [200 + (index - (count - 1) / 2) * across, top + row * down]));
+}
+
+// The upper third of the shield, plain or vair (rows of bells of the two tinctures).
+function drawChief(chief) {
+  if (!chief) return "";
+  const edge = `<path d="M-10,150 H410" stroke="#141414" stroke-width="2"/>`;
+  if (!chief.vair) return `<rect x="-10" y="-10" width="420" height="160" fill="${tinctures[chief.tincture]}"/>${edge}`;
+  const [ground, bells] = chief.vair.map((value) => tinctures[value]);
+  let cells = "";
+  for (let row = 0; row < 3; row += 1) {
+    const y = row * 50;
+    for (let x = row % 2 ? -25 : 0; x < WIDTH; x += 50) {
+      cells += `<path d="M${x},${y + 50} V${y + 36} L${x + 12},${y + 26} V${y + 10} L${x + 25},${y} L${x + 38},${y + 10} V${y + 26} L${x + 50},${y + 36} V${y + 50} Z" fill="${bells}" stroke="#141414" stroke-width="0.8"/>`;
+    }
+  }
+  return `<rect x="-10" y="-10" width="420" height="160" fill="${ground}"/><g>${cells}</g>${edge}`;
+}
+
+// A square in the dexter chief, plain or ermine, drawn over what lies beneath it.
+function drawCanton(canton) {
+  if (!canton) return "";
+  const box = `<rect x="0" y="0" width="150" height="150" fill="${canton.fur ? tinctures.argent : tinctures[canton.tincture]}" stroke="#141414" stroke-width="2"/>`;
+  if (!canton.fur) return box;
+  let spots = "";
+  for (const [x, y] of [[38, 36], [112, 36], [75, 90], [38, 126], [112, 126]]) spots += `<g transform="translate(${x},${y - 10}) scale(1.6)">${ermineSpot()}</g>`;
+  return `${box}<g fill="${tinctures.sable}">${spots}</g>`;
+}
+
+function drawOverall(overall) {
+  if (!overall) return "";
+  return `<path d="M-20,8 L18,-24 L420,428 L382,460 Z" fill="${tinctures[overall.tincture]}" stroke="#141414" stroke-width="2"/>`;
+}
+
+// A cross whose arms widen to ends of three points, as patonce is drawn.
+function crossPatonce(tincture) {
+  const arm = [[-24, -24], [-50, -112], [-62, -146], [-28, -128], [0, -158], [28, -128], [62, -146], [50, -112], [24, -24]];
+  const points = [0, 90, 180, 270].flatMap((angle) => {
+    const radians = (angle * Math.PI) / 180;
+    return arm.map(([x, y]) => [x * Math.cos(radians) - y * Math.sin(radians), x * Math.sin(radians) + y * Math.cos(radians)]);
+  });
+  const d = points.map(([x, y], index) => `${index ? "L" : "M"}${number(200 + x)},${number(205 + y)}`).join(" ");
+  return `<path d="${d} Z" fill="${tinctures[tincture]}" stroke="#141414" stroke-width="2" stroke-linejoin="round"/>`;
+}
+
+function drawCharges(charge, coat, squeeze = 1) {
+  const draw = chargeArt[charge.type] ? (value, scale) => artCharge(charge.type, value, scale)
+    : { buckle, mullet, mascle, crescent, lozenge, roundel }[charge.type];
   const size = charge.arrangement === "centre" ? 2.2 : 1.5;
+  if (charge.arrangement === "centre" && charge.charged) {
+    const carried = chargeArt[charge.charged.type] ? (value, scale) => artCharge(charge.charged.type, value, scale)
+      : { buckle, mullet, mascle, crescent, lozenge, roundel }[charge.charged.type];
+    return `<g transform="translate(200,215)">${draw(charge.tincture, size)}<g transform="translate(${charge.charged.at?.[0] ?? 0},${charge.charged.at?.[1] ?? 0})">${carried(charge.charged.tincture, 0.6)}</g></g>`;
+  }
   let positions = [[200, 215]];
+  if (ROW_COUNTS[charge.arrangement]) {
+    const rows = charge.arrangement === "three-three-one" ? [3, 3, 1] : [4, 3, 2, 1];
+    const scale = ["mascle", "lozenge"].includes(charge.type) ? 1.45 : 1.5;
+    // In a squeezed half the rows close up by the same factor, keeping conjoined charges touching.
+    return rowPositions(rows, charge).map(([x, y]) =>
+      `<g transform="translate(${number(x)},${number(230 + (y - 230) * squeeze)}) scale(1,${number(squeeze)})">${draw(charge.tincture, scale)}</g>`).join("");
+  }
+  if (charge.arrangement === "in-cross") {
+    return [[200, 92], [92, 212], [200, 212], [308, 212], [200, 332]].map(([x, y]) =>
+      `<g transform="translate(${x},${y})">${draw(charge.tincture, 0.9)}</g>`).join("");
+  }
+  if (charge.arrangement === "in-chief") {
+    return [100, 200, 300].map((x) => `<g transform="translate(${x},78)">${draw(charge.tincture, 1.2)}</g>`).join("");
+  }
+  if (charge.arrangement === "on-ordinary" && charge.count === 1) {
+    const [x, y] = coat.ordinary.type === "fess" ? [200, 218] : coat.ordinary.type === "pale" ? [200, 218] : [200, 215];
+    return `<g transform="translate(${x},${y})">${draw(charge.tincture, 1.05)}</g>`;
+  }
   if (charge.arrangement === "two-and-one") {
     positions = coat.ordinary?.type === "chevron" ? [[92, 110], [308, 110], [200, 350]] : [[100, 110], [300, 110], [200, 320]];
   } else if (charge.arrangement === "on-ordinary") {
@@ -160,6 +285,23 @@ function drawCharges(charge, coat) {
   // Charges on a bend lie along it.
   const turn = charge.arrangement === "on-ordinary" && coat.ordinary.type === "bend" ? " rotate(-40)" : "";
   return positions.map(([x, y]) => `<g transform="translate(${x},${y})${turn}">${draw(charge.tincture, scale)}</g>`).join("");
+}
+
+// A drawn charge (see heraldry-charges.mjs), its body in the tincture. Its lines are dark,
+// or white on a sable charge so that they still show.
+function artCharge(type, tincture, scale) {
+  const line = tincture === "sable" ? "#ffffff" : "#141414";
+  const fills = { body: tinctures[tincture], outline: line, light: "#ffffff", none: "none" };
+  const factor = number(scale * 1.15);
+  return `<g transform="scale(${factor})">${chargeArt[type].paths.map((path) =>
+    `<path d="${path.d}" fill="${fills[path.fill]}"${path.stroke ? ` stroke="${line}" stroke-width="${number(Math.max(path.sw, 0.6))}"` : ""}/>`).join("")}</g>`;
+}
+
+// A label of three points across the chief, the mark of an eldest son.
+function label(tincture) {
+  const fill = `fill="${tinctures[tincture]}" stroke="#141414" stroke-width="2"`;
+  const points = [120, 200, 280].map((x) => `<path d="M${x - 14},62 H${x + 14} L${x + 20},104 H${x - 20} Z" ${fill}/>`).join("");
+  return `<rect x="70" y="48" width="260" height="16" ${fill}/>${points}`;
 }
 
 function ermineSpot() {
