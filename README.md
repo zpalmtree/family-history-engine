@@ -4,6 +4,33 @@ An evidence-first genealogy research harness for AI coding agents (Claude Code, 
 
 Every fact is an assertion with an assessment (established, candidate, unresolved, rejected), a conclusion and its evidence. A parent link needs an archived original with an independent review before it counts.
 
+## What it looks like
+
+Every screenshot is the sample tree from `tools/fixtures/fixture-tree.ged`: invented people, five generations.
+
+![The whole tree on the map, coloured by family line, with origin flags](docs/images/map.png)
+
+Each person's page keeps facts and their evidence status apart. Everything imported from a GEDCOM is a candidate ("Likely") until an original record confirms it.
+
+![A person's page: family, life timeline and evidence status](docs/images/person.png)
+
+| Pedigree chart | On a phone |
+| --- | --- |
+| ![Pedigree chart of four generations](docs/images/pedigree.png) | ![The map on a phone](docs/images/phone.png) |
+
+## Try it in five minutes
+
+```sh
+git clone https://github.com/zpalmtree/family-history-engine.git
+cd family-history-engine && npm ci
+node tools/tree-init.mjs --dir ../sample-family --id sample-family --title "Sample Family" --gedcom tools/fixtures/fixture-tree.ged
+cd ../sample-family && npm ci && npm run build
+node tools/check-new-tree.mjs        # ten checks, all should pass
+npx --yes serve .                    # then open the address it prints, at /index.html
+```
+
+Swap the fixture for your own GEDCOM to see your family. `npm run research:session:status` then shows the first research question the agent would take: checking an imported parent link against an original record.
+
 ## Start a tree
 
 ```sh

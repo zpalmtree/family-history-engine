@@ -2,6 +2,10 @@
 
 The first heading is the version `npm run engine:release` publishes. Upgrade a tree with `npm run tree:upgrade -- --ref v<version>`.
 
+## 0.3.2 — 2026-11-20
+
+- README: screenshots of the sample tree (map, a person's page, pedigree, phone) and a five-minute walkthrough.
+
 ## 0.3.1 — 2026-11-20
 
 - macOS and Linux: `npm run local -- … --secret-stdin <name>` pipes a stored secret to a tool's stdin (the contact-form requester profile), and the TLCPL library profile lives in the operating system's secret store. Windows and WSL keep the DPAPI profiles.

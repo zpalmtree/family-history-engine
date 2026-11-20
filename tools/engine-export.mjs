@@ -194,9 +194,14 @@ export function buildEngineExport({ out, ref = "HEAD", root = engineRoot, config
   const dropped = files.get("_dropped_scripts") || [];
   files.delete("_dropped_scripts");
   // The public repository's own README and licence.
-  for (const name of ["README.md", "LICENSE", "CHANGELOG.md", ".github/workflows/ci.yml"]) {
-    const content = fs.readFileSync(path.join(root, "templates", "engine", name));
-    for (const hit of scanText(content.toString("utf8"), terms)) violations.push({ file: name, ...hit });
+  // Everything under templates/engine/ is the public repository's own:
+  // README, LICENSE, CHANGELOG, the CI workflow and the docs images.
+  const engineTemplates = path.join(root, "templates", "engine");
+  const templateFiles = (dir, prefix = "") => fs.readdirSync(path.join(dir, prefix), { withFileTypes: true })
+    .flatMap((entry) => entry.isDirectory() ? templateFiles(dir, path.posix.join(prefix, entry.name)) : [path.posix.join(prefix, entry.name)]);
+  for (const name of templateFiles(engineTemplates)) {
+    const content = fs.readFileSync(path.join(engineTemplates, name));
+    if (!content.includes(0)) for (const hit of scanText(content.toString("utf8"), terms, allowTerms[name] || [])) violations.push({ file: name, ...hit });
     files.set(name, content);
   }
   if (out) {
