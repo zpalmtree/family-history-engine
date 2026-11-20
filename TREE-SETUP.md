@@ -30,6 +30,18 @@ Then:
 3. Fill in `DECISIONS.md`.
 4. Create a private Git repository for the tree and push it. Never make it public: it holds living people's details and records acquired under your subscriptions.
 
+## Platforms
+
+The store, build, validators, GEDCOM tools, life stories and viewer run anywhere Node 22 runs. Browser automation runs in one of two ways:
+
+| | macOS and Linux | Windows (with WSL) |
+| --- | --- | --- |
+| Browser | `npm run browser:start` (add `-- --headless` on a server); `browser:status`, `browser:stop` | The shared Windows Chrome bridge |
+| Running a research tool | `npm run local -- tools/<tool>.mjs [arguments]` | The `*:win:*` npm scripts and PowerShell wrappers |
+| Provider sign-in | Chrome's own saved passwords in the tree's profile | The same, through the bridge |
+
+`npm run local` holds one browser lock so tasks never drive Chrome at the same time, and runs the tool as the Windows wrappers would. Secrets go in the operating system's own store: `npm run secret -- set <name>` (value on stdin), `status` and `delete`, kept in the macOS Keychain or the Linux Secret Service under the tree's id. Still Windows-only for now: the helpers that read the existing DPAPI profiles (requester locality, TLCPL, Lob, API keys), the personal IMAP mailbox reader, and the wrappers' window handling.
+
 ## Upgrading the engine
 
 ```sh

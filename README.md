@@ -19,7 +19,7 @@ A GEDCOM import comes in as research leads: every imported fact is a candidate, 
 ## Requirements
 
 - Node.js 22 or later.
-- Windows with WSL2 and Google Chrome for the browser automation, credential storage (DPAPI) and PowerShell wrappers. The store, build, validators, GEDCOM tools and viewer run anywhere Node runs.
+- Google Chrome or Chromium. On macOS and Linux, `npm run browser:start` opens a Chrome with the tree's own profile and `npm run local -- tools/<tool>.mjs` runs a research tool against it. On Windows the tools use the shared-browser bridge and the PowerShell wrappers. See [TREE-SETUP.md](TREE-SETUP.md#platforms) for what still needs Windows.
 - A Vercel project and Blob store of your own for the protected viewer.
 - An AI coding agent plan of your own. Long research sessions use a lot of it.
 

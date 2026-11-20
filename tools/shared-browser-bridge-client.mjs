@@ -1,8 +1,21 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
 import net from "node:net";
 
 export const sharedChromeEndpoint = "http://127.0.0.1:9226";
-export const sharedBrowserBackend = process.env.FAMILY_HISTORY_BROWSER_BACKEND || "broker";
+// "broker": the Windows shared-browser bridge (Windows Node via the project
+// PowerShell wrappers). "local": a Chrome on this machine started by
+// `npm run browser:start` (macOS, Linux, or anywhere without the bridge).
+// "legacy-cdp": the old direct connection, kept as an explicit rollback.
+export const sharedBrowserBackend = process.env.FAMILY_HISTORY_BROWSER_BACKEND || defaultBrowserBackend();
+
+function defaultBrowserBackend() {
+  if (process.platform === "win32") return "broker";
+  let wsl = false;
+  try { wsl = /microsoft/i.test(fs.readFileSync("/proc/version", "utf8")); } catch {}
+  // Under WSL the tools run through the Windows wrappers; elsewhere locally.
+  return wsl ? "broker" : "local";
+}
 const controlPipe = process.env.SHARED_BROWSER_PIPE || "\\\\.\\pipe\\shared-browser-bridge-v1";
 
 export const sharedBrowserBridge = {
@@ -26,6 +39,13 @@ export async function connectSharedBrowser({
     const browser = await chromium.connectOverCDP(endpoint);
     const context = requireSharedProfileContext(browser, taskLabel);
     return legacyConnection(browser, context);
+  }
+  if (sharedBrowserBackend === "local") {
+    const browser = await chromium.connectOverCDP(endpoint, { timeout: 15_000 }).catch((error) => {
+      throw new Error(`No local Chrome at ${endpoint} for ${taskLabel}: start it with npm run browser:start (${error.message.split("\n")[0]}).`);
+    });
+    const context = requireSharedProfileContext(browser, taskLabel);
+    return localConnection(browser, context);
   }
   if (sharedBrowserBackend !== "broker") {
     throw new Error(`Unsupported FAMILY_HISTORY_BROWSER_BACKEND=${sharedBrowserBackend}; use broker or explicit rollback value legacy-cdp.`);
@@ -261,6 +281,35 @@ function requireSharedProfileContext(browser, taskLabel) {
   // Chrome's persistent profile is the first CDP context. Additional contexts
   // may belong to bridge-isolated visual reviews and are outside this lease.
   return contexts[0];
+}
+
+// A local Chrome has no broker: the connection owns the tabs this task opens
+// or adopts, closes them on release, and leaves parked ones open. Tasks are
+// serialized by the launcher's lock (tools/local-run.mjs).
+function localConnection(browser, context) {
+  const owned = new Set();
+  return {
+    browser,
+    context,
+    lease: null,
+    async adoptPage(page) {
+      owned.add(page);
+      page.once("close", () => owned.delete(page));
+      return await targetIdentity(context, page);
+    },
+    ownedPages() { return [...owned].filter((page) => !page.isClosed()); },
+    async forgetTarget() {},
+    async park() {},
+    async resume() {},
+    async release() {
+      for (const page of owned) await page.close().catch(() => {});
+      owned.clear();
+    },
+    async closeClient({ leaseAction = "release" } = {}) {
+      if (leaseAction !== "keep") for (const page of owned) await page.close().catch(() => {});
+      await browser.close().catch(() => {});
+    }
+  };
 }
 
 function legacyConnection(browser, context) {

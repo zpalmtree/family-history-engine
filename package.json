@@ -1,6 +1,6 @@
 {
   "name": "family-history-engine",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -166,6 +166,11 @@
     "tree:check:full": "npm run data:check && npm run tree:test && node tools/layout-visual-tree.mjs --check && node tools/check-visual-tree.mjs",
     "tree:init": "node tools/tree-init.mjs",
     "tree:upgrade": "node tools/tree-upgrade.mjs",
+    "browser:start": "node tools/local-browser.mjs start",
+    "browser:status": "node tools/local-browser.mjs status",
+    "browser:stop": "node tools/local-browser.mjs stop",
+    "local": "node tools/local-run.mjs",
+    "secret": "node tools/secret-store.mjs",
     "tree:new:check": "node tools/check-new-tree.mjs",
     "tree:config": "node tools/tree-config.mjs",
     "tree:branding": "node tools/tree-config.mjs --write-branding",
@@ -175,7 +180,7 @@
     "engine:release": "node tools/engine-release.mjs",
     "gedcom:export": "node tools/gedcom-export.mjs",
     "gedcom:import": "node tools/gedcom-import.mjs",
-    "engine:test": "node --test tools/tree-config.test.mjs tools/consents.test.mjs tools/gedcom.test.mjs tools/gedcom-export.test.mjs tools/gedcom-import.test.mjs tools/tree-init.test.mjs tools/engine-boundary.test.mjs tools/engine-export.test.mjs tools/tree-upgrade.test.mjs",
+    "engine:test": "node --test tools/tree-config.test.mjs tools/consents.test.mjs tools/gedcom.test.mjs tools/gedcom-export.test.mjs tools/gedcom-import.test.mjs tools/tree-init.test.mjs tools/engine-boundary.test.mjs tools/engine-export.test.mjs tools/tree-upgrade.test.mjs tools/local-browser.test.mjs tools/secret-store.test.mjs",
     "site:stage": "node tools/build-hosted-viewer.mjs",
     "places:gazetteer": "node tools/place-gazetteer.mjs",
     "places:basemap": "node tools/build-place-basemap.mjs",

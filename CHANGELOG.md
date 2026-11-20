@@ -2,6 +2,11 @@
 
 The first heading is the version `npm run engine:release` publishes. Upgrade a tree with `npm run tree:upgrade -- --ref v<version>`.
 
+## 0.3.0 — 2026-11-20
+
+- macOS and Linux: a "local" browser backend (the default off Windows), `npm run browser:start / status / stop` for a Chrome with the tree's own profile (`paths.browserProfile`), and `npm run local -- tools/<tool>.mjs` to run a research tool against it under one browser lock. CI drives a headless Chrome through it on Linux.
+- `npm run secret -- set|status|delete <name>`: secrets in the macOS Keychain or the Linux Secret Service, named per tree, passed on stdin only.
+
 ## 0.2.1 — 2026-11-20
 
 - `tools/test-tree-config.mjs`: tests that need a known configuration (a dormant `collateral` scope, two roots) import it first and behave the same in every tree.

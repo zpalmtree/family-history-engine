@@ -58,7 +58,10 @@ export function defaultTreeConfig() {
       desktopMirror: null,
       // Where encrypted source masters live outside Git. The
       // FAMILY_RECORD_ARCHIVE environment variable overrides it.
-      recordArchive: null
+      recordArchive: null,
+      // Chrome profile for the local browser on macOS and Linux
+      // (npm run browser:start); null: a per-tree folder in the user data dir.
+      browserProfile: null
     },
     viewer: {
       title: null,
@@ -126,7 +129,7 @@ export function validateTreeConfig(config) {
     || (root.sideViewId !== undefined && (typeof root.sideViewId !== "string" || !SCOPE_ID.test(root.sideViewId))))) {
     errors.push("viewer.roots must be an array of { personId, name?, sideLabel?, sideViewId? }");
   }
-  for (const key of ["primaryCheckout", "desktopMirror", "recordArchive"]) {
+  for (const key of ["primaryCheckout", "desktopMirror", "recordArchive", "browserProfile"]) {
     const value = config.paths?.[key];
     if (value !== null && value !== undefined && (typeof value !== "string" || !path.isAbsolute(value))) {
       errors.push(`paths.${key} must be an absolute path or null`);

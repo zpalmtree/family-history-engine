@@ -20,7 +20,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Engine tests
-        run: npm run engine:test
+        run: npm run engine:test && node --test tools/local-browser.test.mjs
+      - name: Local browser backend (headless Chrome on Linux)
+        run: |
+          node tools/local-browser.mjs start --headless
+          node tools/local-run.mjs tools/local-browser-smoke.mjs
+          node tools/local-browser.mjs stop
       - name: Start the fixture tree
         run: |
           git config --global user.name "CI"
