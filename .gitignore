@@ -1,0 +1,35 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.next/
+.vercel/
+.viewer-server/
+.model-evals/
+public/tree/
+
+# Playwright MCP session diagnostics are temporary browser-tool artifacts.
+.playwright-mcp/
+lineage-export-header.png
+
+# GRO downloads/screenshots/runs can contain personal record images or account pages.
+evidence/gro/*/downloads/
+evidence/gro/*/screenshots/
+evidence/gro/*/runs/
+evidence/gro/*/target-record.json
+
+# TLCPL cart-prep browser state can contain account or checkout pages.
+evidence/tlcpl/*/downloads/
+evidence/tlcpl/*/screenshots/
+evidence/tlcpl/*/runs/
+
+# Inbox sweep local state (last sweep time and failures; no message content).
+.inbox-sweep/
+# Contact for Wikimedia requests (tools/exhibit-sources.mjs); never committed
+.exhibit-fetch/
+# Local feature showcase pages: captures of the viewer, kept out of Git
+.showcase/

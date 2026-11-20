@@ -1,0 +1,443 @@
+0 HEAD
+1 SOUR FIXTURE
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+1 NOTE Synthetic fixture tree for engine tests. Every name and place is invented.
+0 @I1@ INDI
+1 NAME Hilda /Fixture/
+1 SEX F
+1 BIRT
+2 DATE 20 JUL 1990
+2 PLAC Sampleby, Demoshire, England
+1 FAMC @F1@
+0 @I2@ INDI
+1 NAME Oswald /Fixture/
+1 SEX M
+1 BIRT
+2 DATE 16 OCT 1959
+2 PLAC Exampleton, Testshire, England
+1 OCCU Carpenter
+1 FAMC @F2@
+1 FAMS @F1@
+0 @I3@ INDI
+1 NAME Florence /Mockridge/
+1 SEX F
+1 BIRT
+2 DATE 18 APR 1961
+2 PLAC Sampleby, Demoshire, England
+1 FAMC @F3@
+1 FAMS @F1@
+0 @I4@ INDI
+1 NAME Maurice /Fixture/
+1 SEX M
+1 BIRT
+2 DATE 11 OCT 1927
+2 PLAC Mockford, Testshire, England
+1 DEAT
+2 DATE 1997
+2 PLAC Exampleton, Testshire, England
+1 OCCU Carpenter
+1 FAMC @F4@
+1 FAMS @F2@
+0 @I5@ INDI
+1 NAME Dorothy /Placeholder/
+1 SEX F
+1 BIRT
+2 DATE 13 APR 1929
+2 PLAC Fixture Green, Demoshire, England
+1 DEAT
+2 DATE 1999
+2 PLAC Sampleby, Demoshire, England
+1 FAMC @F5@
+1 FAMS @F2@
+0 @I6@ INDI
+1 NAME Kenneth /Mockridge/
+1 SEX M
+1 BIRT
+2 DATE 13 APR 1929
+2 PLAC Fixture Green, Demoshire, England
+1 DEAT
+2 DATE 1999
+2 PLAC Sampleby, Demoshire, England
+1 OCCU Weaver
+1 FAMC @F6@
+1 FAMS @F3@
+0 @I7@ INDI
+1 NAME Beatrice /Proto/
+1 SEX F
+1 BIRT
+2 DATE 15 OCT 1931
+2 PLAC Mockford, Testshire, England
+1 DEAT
+2 DATE 2001
+2 PLAC Exampleton, Testshire, England
+1 FAMC @F7@
+1 FAMS @F3@
+0 @I8@ INDI
+1 NAME Ivor /Fixture/
+1 SEX M
+1 BIRT
+2 DATE ABT 1897
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1967
+2 PLAC Sampleby, Demoshire, England
+1 OCCU Weaver
+1 FAMC @F8@
+1 FAMS @F4@
+0 @I9@ INDI
+1 NAME Phyllis /Specimen/
+1 SEX F
+1 BIRT
+2 DATE ABT 1899
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1969
+2 PLAC Exampleton, Testshire, England
+1 FAMC @F9@
+1 FAMS @F4@
+0 @I10@ INDI
+1 NAME Gilbert /Placeholder/
+1 SEX M
+1 BIRT
+2 DATE ABT 1899
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1969
+2 PLAC Exampleton, Testshire, England
+1 OCCU Carpenter
+1 FAMC @F10@
+1 FAMS @F5@
+0 @I11@ INDI
+1 NAME Nora /Pattern/
+1 SEX F
+1 BIRT
+2 DATE ABT 1901
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1971
+2 PLAC Sampleby, Demoshire, England
+1 FAMC @F11@
+1 FAMS @F5@
+0 @I12@ INDI
+1 NAME Edwin /Mockridge/
+1 SEX M
+1 BIRT
+2 DATE ABT 1899
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1969
+2 PLAC Exampleton, Testshire, England
+1 OCCU Carpenter
+1 FAMC @F12@
+1 FAMS @F6@
+0 @I13@ INDI
+1 NAME Lilian /Exemplar/
+1 SEX F
+1 BIRT
+2 DATE ABT 1901
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1971
+2 PLAC Sampleby, Demoshire, England
+1 FAMC @F13@
+1 FAMS @F6@
+0 @I14@ INDI
+1 NAME Cecil /Proto/
+1 SEX M
+1 BIRT
+2 DATE ABT 1901
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1971
+2 PLAC Sampleby, Demoshire, England
+1 OCCU Weaver
+1 FAMC @F14@
+1 FAMS @F7@
+0 @I15@ INDI
+1 NAME Joan /Sample/
+1 SEX F
+1 BIRT
+2 DATE ABT 1903
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1973
+2 PLAC Exampleton, Testshire, England
+1 FAMC @F15@
+1 FAMS @F7@
+0 @I16@ INDI
+1 NAME Arthur /Fixture/
+1 SEX M
+1 BIRT
+2 DATE ABT 1866
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1936
+2 PLAC Fixture Green, Demoshire, England
+1 OCCU Farmer
+1 FAMS @F8@
+0 @I17@ INDI
+1 NAME Hilda /Example/
+1 SEX F
+1 BIRT
+2 DATE ABT 1868
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1938
+2 PLAC Mockford, Testshire, England
+1 FAMS @F8@
+0 @I18@ INDI
+1 NAME Oswald /Specimen/
+1 SEX M
+1 BIRT
+2 DATE ABT 1868
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1938
+2 PLAC Mockford, Testshire, England
+1 OCCU Labourer
+1 FAMS @F9@
+0 @I19@ INDI
+1 NAME Florence /Placeholder/
+1 SEX F
+1 BIRT
+2 DATE ABT 1870
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1940
+2 PLAC Fixture Green, Demoshire, England
+1 FAMS @F9@
+0 @I20@ INDI
+1 NAME Maurice /Placeholder/
+1 SEX M
+1 BIRT
+2 DATE ABT 1868
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1938
+2 PLAC Mockford, Testshire, England
+1 OCCU Labourer
+1 FAMS @F10@
+0 @I21@ INDI
+1 NAME Dorothy /Proto/
+1 SEX F
+1 BIRT
+2 DATE ABT 1870
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1940
+2 PLAC Fixture Green, Demoshire, England
+1 FAMS @F10@
+0 @I22@ INDI
+1 NAME Kenneth /Pattern/
+1 SEX M
+1 BIRT
+2 DATE ABT 1870
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1940
+2 PLAC Fixture Green, Demoshire, England
+1 OCCU Farmer
+1 FAMS @F11@
+0 @I23@ INDI
+1 NAME Beatrice /Trialby/
+1 SEX F
+1 BIRT
+2 DATE ABT 1872
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1942
+2 PLAC Mockford, Testshire, England
+1 FAMS @F11@
+0 @I24@ INDI
+1 NAME Ivor /Mockridge/
+1 SEX M
+1 BIRT
+2 DATE ABT 1868
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1938
+2 PLAC Mockford, Testshire, England
+1 OCCU Labourer
+1 FAMS @F12@
+0 @I25@ INDI
+1 NAME Phyllis /Modelton/
+1 SEX F
+1 BIRT
+2 DATE ABT 1870
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1940
+2 PLAC Fixture Green, Demoshire, England
+1 FAMS @F12@
+0 @I26@ INDI
+1 NAME Gilbert /Exemplar/
+1 SEX M
+1 BIRT
+2 DATE ABT 1870
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1940
+2 PLAC Fixture Green, Demoshire, England
+1 OCCU Farmer
+1 FAMS @F13@
+0 @I27@ INDI
+1 NAME Nora /Templeby/
+1 SEX F
+1 BIRT
+2 DATE ABT 1872
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1942
+2 PLAC Mockford, Testshire, England
+1 FAMS @F13@
+0 @I28@ INDI
+1 NAME Edwin /Proto/
+1 SEX M
+1 BIRT
+2 DATE ABT 1870
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1940
+2 PLAC Fixture Green, Demoshire, England
+1 OCCU Farmer
+1 FAMS @F14@
+0 @I29@ INDI
+1 NAME Lilian /Fixture/
+1 SEX F
+1 BIRT
+2 DATE ABT 1872
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1942
+2 PLAC Mockford, Testshire, England
+1 FAMS @F14@
+0 @I30@ INDI
+1 NAME Cecil /Sample/
+1 SEX M
+1 BIRT
+2 DATE ABT 1872
+2 PLAC Exampleton, Testshire, England
+1 DEAT
+2 DATE 1942
+2 PLAC Mockford, Testshire, England
+1 OCCU Labourer
+1 FAMS @F15@
+0 @I31@ INDI
+1 NAME Joan /Testwell/
+1 SEX F
+1 BIRT
+2 DATE ABT 1874
+2 PLAC Sampleby, Demoshire, England
+1 DEAT
+2 DATE 1944
+2 PLAC Fixture Green, Demoshire, England
+1 FAMS @F15@
+0 @F1@ FAM
+1 HUSB @I2@
+1 WIFE @I3@
+1 CHIL @I1@
+1 MARR
+2 DATE 1988
+2 PLAC Exampleton, Testshire, England
+0 @F2@ FAM
+1 HUSB @I4@
+1 WIFE @I5@
+1 CHIL @I2@
+1 MARR
+2 DATE 1957
+2 PLAC Mockford, Testshire, England
+0 @F3@ FAM
+1 HUSB @I6@
+1 WIFE @I7@
+1 CHIL @I3@
+1 MARR
+2 DATE 1959
+2 PLAC Fixture Green, Demoshire, England
+0 @F4@ FAM
+1 HUSB @I8@
+1 WIFE @I9@
+1 CHIL @I4@
+1 MARR
+2 DATE 1925
+2 PLAC Mockford, Testshire, England
+0 @F5@ FAM
+1 HUSB @I10@
+1 WIFE @I11@
+1 CHIL @I5@
+1 MARR
+2 DATE 1927
+2 PLAC Fixture Green, Demoshire, England
+0 @F6@ FAM
+1 HUSB @I12@
+1 WIFE @I13@
+1 CHIL @I6@
+1 MARR
+2 DATE 1927
+2 PLAC Fixture Green, Demoshire, England
+0 @F7@ FAM
+1 HUSB @I14@
+1 WIFE @I15@
+1 CHIL @I7@
+1 MARR
+2 DATE 1929
+2 PLAC Mockford, Testshire, England
+0 @F8@ FAM
+1 HUSB @I16@
+1 WIFE @I17@
+1 CHIL @I8@
+1 MARR
+2 DATE 1895
+2 PLAC Fixture Green, Demoshire, England
+0 @F9@ FAM
+1 HUSB @I18@
+1 WIFE @I19@
+1 CHIL @I9@
+1 MARR
+2 DATE 1897
+2 PLAC Mockford, Testshire, England
+0 @F10@ FAM
+1 HUSB @I20@
+1 WIFE @I21@
+1 CHIL @I10@
+1 MARR
+2 DATE 1897
+2 PLAC Mockford, Testshire, England
+0 @F11@ FAM
+1 HUSB @I22@
+1 WIFE @I23@
+1 CHIL @I11@
+1 MARR
+2 DATE 1899
+2 PLAC Fixture Green, Demoshire, England
+0 @F12@ FAM
+1 HUSB @I24@
+1 WIFE @I25@
+1 CHIL @I12@
+1 MARR
+2 DATE 1897
+2 PLAC Mockford, Testshire, England
+0 @F13@ FAM
+1 HUSB @I26@
+1 WIFE @I27@
+1 CHIL @I13@
+1 MARR
+2 DATE 1899
+2 PLAC Fixture Green, Demoshire, England
+0 @F14@ FAM
+1 HUSB @I28@
+1 WIFE @I29@
+1 CHIL @I14@
+1 MARR
+2 DATE 1899
+2 PLAC Fixture Green, Demoshire, England
+0 @F15@ FAM
+1 HUSB @I30@
+1 WIFE @I31@
+1 CHIL @I15@
+1 MARR
+2 DATE 1901
+2 PLAC Mockford, Testshire, England
+0 TRLR

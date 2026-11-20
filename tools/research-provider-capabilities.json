@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "registryVersion": "2026-07-28",
+  "coverageContractVersion": 1,
+  "providers": [
+    {
+      "id": "ancestry",
+      "label": "Ancestry",
+      "accessClass": "subscription",
+      "capabilities": ["record-search", "record-read", "public-tree-read"],
+      "browserBatch": {
+        "state": "implemented",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "ancestry.com" },
+          { "kind": "domain", "value": "ancestry.co.uk" }
+        ],
+        "operations": [
+          { "id": "search-results", "routePolicy": "provider-read-route" },
+          { "id": "public-tree-results", "routePolicy": "ancestry-public-tree-results" },
+          { "id": "public-tree-person", "routePolicy": "ancestry-public-tree-person" },
+          { "id": "record-facts", "routePolicy": "ancestry-record" }
+        ]
+      }
+    },
+    {
+      "id": "antenati",
+      "label": "Antenati",
+      "accessClass": "free",
+      "capabilities": ["register-browse", "record-read"],
+      "browserBatch": {
+        "state": "implemented",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "antenati.cultura.gov.it" }
+        ],
+        "operations": [
+          { "id": "registry-context", "routePolicy": "antenati-register-ark" }
+        ]
+      }
+    },
+    {
+      "id": "findmypast",
+      "label": "Findmypast",
+      "accessClass": "subscription",
+      "capabilities": ["record-search", "record-read"],
+      "browserBatch": {
+        "state": "implemented",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "findmypast.com" },
+          { "kind": "domain", "value": "findmypast.co.uk" }
+        ],
+        "operations": [
+          { "id": "findmypast-row", "routePolicy": "provider-read-route" },
+          { "id": "findmypast-transcript", "routePolicy": "findmypast-transcript" },
+          { "id": "findmypast-newspaper-results", "routePolicy": "findmypast-newspaper-results" }
+        ]
+      }
+    },
+    {
+      "id": "familysearch",
+      "label": "FamilySearch",
+      "accessClass": "free-account",
+      "capabilities": ["record-search", "record-read", "catalog-browse"],
+      "browserBatch": {
+        "state": "implemented",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "familysearch.org" }
+        ],
+        "operations": [
+          { "id": "fulltext-search", "routePolicy": "provider-read-route" },
+          { "id": "record-facts", "routePolicy": "provider-read-route" },
+          { "id": "page-links", "routePolicy": "provider-read-route" },
+          { "id": "page-context", "routePolicy": "provider-read-route" },
+          { "id": "viewer-metadata", "routePolicy": "familysearch-image-metadata" }
+        ]
+      }
+    },
+    {
+      "id": "pcusa",
+      "label": "Presbyterian Historical Society",
+      "accessClass": "free",
+      "capabilities": ["catalog-search", "catalog-read", "digital-object-read"],
+      "browserBatch": {
+        "state": "implemented",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "exact", "value": "catalog.history.pcusa.org" },
+          { "kind": "exact", "value": "digital.history.pcusa.org" }
+        ],
+        "operations": [
+          { "id": "catalog-results", "routePolicy": "pcusa-catalog-results" },
+          { "id": "catalog-detail", "routePolicy": "pcusa-catalog-detail" },
+          { "id": "catalog-marc", "routePolicy": "pcusa-catalog-marc" },
+          { "id": "digital-context", "routePolicy": "pcusa-digital-context" }
+        ]
+      }
+    },
+    {
+      "id": "ava",
+      "label": "Fairfield County AVA",
+      "accessClass": "free",
+      "capabilities": ["deed-index-search", "document-image-read"],
+      "browserBatch": {
+        "state": "implemented",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "exact", "value": "ava.fidlar.com" }
+        ],
+        "operations": [
+          { "id": "document-search", "routePolicy": "ava-index-document" },
+          { "id": "document-image-context", "routePolicy": "ava-index-document" }
+        ]
+      }
+    },
+    {
+      "id": "archion",
+      "label": "Archion",
+      "accessClass": "subscription",
+      "capabilities": ["catalog-search", "register-browse", "document-image-capture"],
+      "browserBatch": {
+        "state": "implemented",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "exact", "value": "www.archion.de" }
+        ],
+        "operations": [
+          { "id": "catalog-results", "routePolicy": "archion-braunschweig-catalog" }
+        ]
+      }
+    },
+    {
+      "id": "msa-guide",
+      "label": "Maryland State Archives Guide",
+      "accessClass": "free",
+      "capabilities": ["catalog-search", "catalog-read"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "exact", "value": "guide.msa.maryland.gov" }
+        ],
+        "operations": [
+          { "id": "series-results", "routePolicy": "scaffold" },
+          { "id": "series-detail", "routePolicy": "scaffold" }
+        ]
+      }
+    },
+    {
+      "id": "mdlandrec",
+      "label": "MDLandRec",
+      "accessClass": "free-account",
+      "capabilities": ["deed-index-search", "deed-book-browse", "document-image-capture"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "mdlandrec.net" }
+        ],
+        "operations": [
+          { "id": "index-results", "routePolicy": "scaffold" },
+          { "id": "deed-book-context", "routePolicy": "scaffold" }
+        ]
+      }
+    },
+    {
+      "id": "staffs-name-indexes",
+      "label": "Staffordshire Name Indexes",
+      "accessClass": "free",
+      "capabilities": ["catalog-search", "catalog-read"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "staffsnameindexes.org.uk" }
+        ],
+        "operations": [
+          { "id": "name-index-results", "routePolicy": "scaffold" },
+          { "id": "name-index-detail", "routePolicy": "scaffold" }
+        ]
+      }
+    },
+    {
+      "id": "staffs-history",
+      "label": "Staffordshire History",
+      "accessClass": "free",
+      "capabilities": ["catalog-search", "catalog-read"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "staffordshirehistory.org.uk" }
+        ],
+        "operations": [
+          { "id": "catalog-results", "routePolicy": "scaffold" },
+          { "id": "catalog-detail", "routePolicy": "scaffold" }
+        ]
+      }
+    },
+    {
+      "id": "tna-discovery",
+      "label": "The National Archives Discovery",
+      "accessClass": "free",
+      "capabilities": ["catalog-search", "catalog-read"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "exact", "value": "discovery.nationalarchives.gov.uk" }
+        ],
+        "operations": [
+          { "id": "catalog-results", "routePolicy": "scaffold" },
+          { "id": "catalog-detail", "routePolicy": "scaffold" }
+        ]
+      }
+    },
+    {
+      "id": "freebmd",
+      "label": "FreeBMD",
+      "accessClass": "free",
+      "capabilities": ["civil-index-search", "index-entry-read", "coverage-read"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "freebmd.org.uk" },
+          { "kind": "domain", "value": "freebmd2.org.uk" }
+        ],
+        "operations": [
+          { "id": "index-results", "routePolicy": "scaffold" },
+          { "id": "index-entry", "routePolicy": "scaffold" },
+          { "id": "coverage-context", "routePolicy": "scaffold" }
+        ]
+      }
+    },
+    {
+      "id": "freereg",
+      "label": "FreeREG",
+      "accessClass": "free",
+      "capabilities": ["parish-index-search", "index-entry-read", "coverage-read"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "freereg.org.uk" }
+        ],
+        "operations": [
+          { "id": "index-results", "routePolicy": "scaffold" },
+          { "id": "index-entry", "routePolicy": "scaffold" },
+          { "id": "coverage-context", "routePolicy": "scaffold" }
+        ]
+      }
+    },
+    {
+      "id": "freecen",
+      "label": "FreeCEN",
+      "accessClass": "free",
+      "capabilities": ["census-index-search", "household-read", "coverage-read"],
+      "browserBatch": {
+        "state": "scaffold",
+        "transport": "windows-shared-chrome",
+        "hosts": [
+          { "kind": "domain", "value": "freecen.org.uk" }
+        ],
+        "operations": [
+          { "id": "index-results", "routePolicy": "scaffold" },
+          { "id": "household", "routePolicy": "scaffold" },
+          { "id": "coverage-context", "routePolicy": "scaffold" }
+        ]
+      }
+    }
+  ]
+}

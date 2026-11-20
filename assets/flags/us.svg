@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1235 650" preserveAspectRatio="none" role="img" aria-label="Flag of the United States">
+  <path fill="#fff" d="M0 0h1235v650H0z"/>
+  <path fill="#b22234" d="M0 0h1235v50H0zm0 100h1235v50H0zm0 100h1235v50H0zm0 100h1235v50H0zm0 100h1235v50H0zm0 100h1235v50H0zm0 100h1235v50H0z"/>
+  <path fill="#3c3b6e" d="M0 0h494v350H0z"/>
+  <defs>
+    <path id="s" fill="#fff" d="m0-12 2.8 8.1 8.6.2-6.8 5.2 2.5 8.2L0 5l-7.1 4.7 2.5-8.2-6.8-5.2 8.6-.2z"/>
+    <g id="r6"><use href="#s" x="40"/><use href="#s" x="120"/><use href="#s" x="200"/><use href="#s" x="280"/><use href="#s" x="360"/><use href="#s" x="440"/></g>
+    <g id="r5"><use href="#s" x="80"/><use href="#s" x="160"/><use href="#s" x="240"/><use href="#s" x="320"/><use href="#s" x="400"/></g>
+  </defs>
+  <use href="#r6" y="35"/><use href="#r5" y="70"/>
+  <use href="#r6" y="105"/><use href="#r5" y="140"/>
+  <use href="#r6" y="175"/><use href="#r5" y="210"/>
+  <use href="#r6" y="245"/><use href="#r5" y="280"/>
+  <use href="#r6" y="315"/>
+</svg>
