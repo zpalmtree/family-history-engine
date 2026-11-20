@@ -145,7 +145,16 @@ export function initTree({ dir, id, title, gedcom = null, linkNodeModules = fals
   const pkg = JSON.parse(fs.readFileSync(packageFile, "utf8"));
   pkg.name = id;
   write(target, "package.json", pkg);
-  write(target, "tree.config.json", { ...treeConfigFor({ id, title, rootPersonIds, primaryCheckout: target }), places: { countries: countries.map((name) => ({ name, flag: countryCodes[name] || null })) } });
+  const lockFile = path.join(target, "package-lock.json");
+  if (fs.existsSync(lockFile)) {
+    const lock = JSON.parse(fs.readFileSync(lockFile, "utf8"));
+    lock.name = id;
+    if (lock.packages?.[""]) lock.packages[""].name = id;
+    write(target, "package-lock.json", lock);
+  }
+  const enginePackage = JSON.parse(committedFile(root, ref, "package.json").toString("utf8"));
+  const engine = { version: enginePackage.version || null, source: enginePackage.repository?.url || null };
+  write(target, "tree.config.json", { ...treeConfigFor({ id, title, rootPersonIds, primaryCheckout: target }), engine, places: { countries: countries.map((name) => ({ name, flag: countryCodes[name] || null })) } });
   write(target, VIEWER_BRANDING_FILE, viewerBrandingSource({ title, issuer: id }));
   write(target, "consents.json", { schemaVersion: 1, note: "Outward-facing helpers this tree's owner has switched on. All are off in a new tree; see TREE-SETUP.md.", capabilities: {} });
   for (const [relative, value] of Object.entries(emptyStore({ title, rootPersonIds }))) write(target, relative, value);

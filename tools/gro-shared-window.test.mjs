@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const gro = fs.readFileSync(new URL("./gro-order-frank.mjs", import.meta.url), "utf8");
 const orderCheck = fs.readFileSync(new URL("./gro-check-orders.mjs", import.meta.url), "utf8");
@@ -104,4 +106,13 @@ test("GRO payment recovery can only finish a cost-guarded already-paid confirmat
   assert.match(paymentRecovery, /Restored page looked like a new payment form; recovery click refused/);
   assert.match(paymentRecovery, /\^complete payment\$/);
   assert.doesNotMatch(paymentRecovery, /\.fill\(|\.type\(|inputValue\(|screenshot|SendKeys|mouse\./);
+});
+
+// 20 Nov 2026: removing the built-in default order left a module-level
+// pathsForTarget(null), so every mode crashed on load.
+test("the GRO helper starts without a built-in order", () => {
+  assert.doesNotMatch(gro, /let activePaths = pathsForTarget\(activeTarget\);/);
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL("./gro-order-frank.mjs", import.meta.url)), "--help"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /GRO assisted order tool/);
 });

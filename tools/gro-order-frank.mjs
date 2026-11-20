@@ -53,7 +53,8 @@ const sharedWindow = args.has("--shared-window");
 const endpoint = getArgValue("--endpoint") || sharedChromeEndpoint;
 const affinitySlot = getArgValue("--affinity-slot") || "gro-orders";
 let activeTarget = defaultTarget;
-let activePaths = pathsForTarget(activeTarget);
+// No target is active until setActiveTarget() runs; with no built-in default the paths start empty.
+let activePaths = activeTarget ? pathsForTarget(activeTarget) : null;
 let runId = newRunId();
 let activeSharedSession = null;
 const rl = createInterface({ input, output });

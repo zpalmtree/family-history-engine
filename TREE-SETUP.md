@@ -30,6 +30,15 @@ Then:
 3. Fill in `DECISIONS.md`.
 4. Create a private Git repository for the tree and push it. Never make it public: it holds living people's details and records acquired under your subscriptions.
 
+## Upgrading the engine
+
+```sh
+npm run tree:upgrade -- --ref v0.2.0 --dry-run    # what would change
+npm run tree:upgrade -- --ref v0.2.0              # replace the engine files, migrate, rebuild, check
+```
+
+The upgrade fetches the release from `engine.source` in `tree.config.json` (or `--from <git URL or folder>`), replaces only the engine's files, keeps the tree's data, config, `tree/` folder, branding and package name, runs any store migrations, rebuilds and runs `check-new-tree`. It refuses if engine files have uncommitted changes. Nothing is committed: review it with `git diff` and commit. Releases and their changes are listed in `CHANGELOG.md`.
+
 ## Configuration reference (`tree.config.json`)
 
 | Key | Default | Meaning |

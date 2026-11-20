@@ -32,6 +32,8 @@ export const DEFAULT_PEDIGREE_LAYOUT = Object.freeze({
  * @param {object} [input.view] view.nodes, view.axis, layoutFlipCouples and core are supported
  * @param {{generations: number}} [input.core] pack the root family and this
  *   many generations of its ancestors into one block (see applyFamilyCore)
+ * @param {boolean} [input.compact] close the gaps the tidy tree leaves
+ *   between subtrees (see compactRows)
  * @param {number} input.nodeWidth rendered card width
  * @param {number} input.nodeHeight rendered card height
  * @returns {object} occurrence nodes and pre-routed orthogonal connectors
@@ -114,8 +116,12 @@ export function layoutPedigree(input) {
     });
   });
   const maxGeneration = Math.max(...positioned.map((node) => node.data.generation));
+  const compact = Boolean(input.compact ?? view.compact);
+  if (compact) {
+    compactRows(rootUnits, positioned, config, coreSetting ? Math.min(coreSetting.generations, maxGeneration) : null);
+  }
   const core = coreSetting
-    ? applyFamilyCore(coreSetting, rootUnits, positioned, maxGeneration, config)
+    ? applyFamilyCore(coreSetting, rootUnits, positioned, maxGeneration, config, { recentre: compact })
     : null;
   const minimumLeft = Math.min(...positioned.map((node) => node.left));
   const shiftX = config.marginX - minimumLeft;
@@ -155,6 +161,7 @@ export function layoutPedigree(input) {
     height,
     maxGeneration,
     config: { ...config },
+    ...(compact ? { compact: true } : {}),
     ...(core ? {
       core: {
         generations: core.generations,
@@ -413,7 +420,7 @@ function readCore(input, view) {
  * Moves the core's cards in `positioned`; the caller lowers the rows by
  * `dropByGeneration` and draws each link on its track from `trackByChild`.
  */
-function applyFamilyCore(setting, rootUnits, positioned, maxGeneration, config) {
+function applyFamilyCore(setting, rootUnits, positioned, maxGeneration, config, { recentre = false } = {}) {
   if (rootUnits.length !== 1) {
     throw new Error(`a family core needs one root family; this view has ${rootUnits.length}`);
   }
@@ -448,6 +455,25 @@ function applyFamilyCore(setting, rootUnits, positioned, maxGeneration, config) 
         left += config.nodeWidth + config.coupleGap;
       }
     });
+  }
+
+  // Where the rows above have been compacted, the root no longer sits in any
+  // particular place under them: the whole core slides sideways to where
+  // its boughs are shortest overall (least squares), inside the map.
+  if (recentre) {
+    const boughs = parentUnits(rows.get(generations)).map(({ unit, child }) => unitCentre(unit) - centreOf(child));
+    if (boughs.length) {
+      const cards = [...rows.values()].flat().flatMap(({ unit }) => unit.members.map((member) => placed.get(member.instanceId)));
+      const others = positioned.filter((node) => !cards.includes(node));
+      const lowest = Math.min(...others.map((node) => node.left));
+      const highest = Math.max(...others.map((node) => node.left));
+      let slide = boughs.reduce((sum, offset) => sum + offset, 0) / boughs.length;
+      slide = Math.max(slide, lowest - Math.min(...cards.map((node) => node.left)));
+      slide = Math.min(slide, highest - Math.max(...cards.map((node) => node.left)));
+      for (const node of cards) {
+        node.left += slide;
+      }
+    }
   }
 
   // Tracks, level by level. A bar runs from the parents' junction to the
@@ -498,6 +524,292 @@ function applyFamilyCore(setting, rootUnits, positioned, maxGeneration, config) 
     trackByChild,
     boughChildren
   };
+}
+
+/**
+ * Compaction. A tidy tree moves each subtree as one rigid piece, so two
+ * neighbouring subtrees stand as far apart as their widest rows need, and
+ * every other row between them has a gap: on a deep pedigree that is a
+ * third of the map's width. This pass lets each couple move on its own,
+ * under the rules that keep the drawing what it was:
+ *
+ *  - each row keeps its order and its gaps between neighbours;
+ *  - in each space between two rows, the links keep their order too: one
+ *    family's bar (from the parents' junction to the child) ends well before
+ *    the next one's begins, so all of them still share one track, none
+ *    cross, and two never read as one rail;
+ *  - nobody's line comes down under the couple next to their parents, where
+ *    it would read as that couple's child.
+ *
+ * Those are difference constraints, so the narrowest map that satisfies
+ * them is a longest-path solution. Within that width, each couple is then
+ * moved as nearly over its child, and each child as nearly under its
+ * parents, as its neighbours allow: first a couple together with all its
+ * ancestors, then a row at a time, then couple by couple (each step lowers
+ * the squared offsets and breaks no rule). What is lost is exact centring:
+ * a couple is nearly, not exactly, over their child.
+ *
+ * `coreGenerations` is the top generation of a family core, or null. The
+ * core's own rows are placed afterwards by applyFamilyCore and its links
+ * take tracks, so no rule here involves a child inside the core.
+ */
+function compactRows(rootUnits, positioned, config, coreGenerations) {
+  const placed = new Map(positioned.map((node) => [node.data.instanceId, node]));
+  const units = [];
+  const collect = (unit, child) => {
+    const lefts = unit.members.map((member) => placed.get(member.instanceId).left);
+    const entry = {
+      index: units.length,
+      unit,
+      generation: unit.members[0].generation,
+      component: unit.componentIndex,
+      width: unitWidth(unit, config),
+      start: Math.min(...lefts),
+      // Offset of each member's centre from the unit's left edge.
+      centres: new Map(unit.members.map((member, position) => [
+        member.instanceId,
+        position * (config.nodeWidth + config.coupleGap) + config.nodeWidth / 2
+      ])),
+      child,
+      parents: []
+    };
+    units.push(entry);
+    for (const parentUnit of unit.children) {
+      entry.parents.push(collect(parentUnit, { of: entry, instanceId: parentUnit.childInstanceId }));
+    }
+    return entry;
+  };
+  rootUnits.forEach((unit) => collect(unit, null));
+
+  // lower[b] >= x[a] + gap for every rule "b lies at least gap right of a".
+  const rules = [];
+  const rule = (from, fromOffset, to, toOffset, gap) => {
+    rules.push({ from: from.index, to: to.index, gap: fromOffset + gap - toOffset });
+  };
+  const byGeneration = new Map();
+  for (const entry of units) {
+    if (!byGeneration.has(entry.generation)) {
+      byGeneration.set(entry.generation, []);
+    }
+    byGeneration.get(entry.generation).push(entry);
+  }
+  for (const row of byGeneration.values()) {
+    row.sort((a, b) => a.start - b.start);
+    for (let index = 1; index < row.length; index += 1) {
+      const gap = row[index - 1].component === row[index].component ? config.nodeGap : config.componentGap;
+      rule(row[index - 1], row[index - 1].width, row[index], 0, gap);
+    }
+  }
+  // Links, by the space between rows they run in, in order.
+  const links = units.filter((entry) => entry.child
+    && (coreGenerations === null || entry.child.of.generation > coreGenerations));
+  const childOffset = (entry) => entry.child.of.centres.get(entry.child.instanceId);
+  // Between two bars on one track: wide enough to read as two links.
+  const barGap = Math.round(config.nodeWidth * 0.3);
+  // A child's own line comes down at its centre: that point stays a couple
+  // gap clear of the cards of the couple next to its parents.
+  const clearGap = config.coupleGap - config.nodeWidth / 2;
+  const byGap = new Map();
+  for (const entry of links) {
+    if (!byGap.has(entry.generation)) {
+      byGap.set(entry.generation, []);
+    }
+    byGap.get(entry.generation).push(entry);
+  }
+  for (const gapLinks of byGap.values()) {
+    gapLinks.sort((a, b) => a.child.of.start + childOffset(a) - (b.child.of.start + childOffset(b)));
+    for (let index = 1; index < gapLinks.length; index += 1) {
+      const left = gapLinks[index - 1];
+      const right = gapLinks[index];
+      // One bar ends well before the next begins (the two would otherwise
+      // read as one rail) ...
+      for (const [from, fromOffset] of [[left, left.width / 2], [left.child.of, childOffset(left)]]) {
+        for (const [to, toOffset] of [[right, right.width / 2], [right.child.of, childOffset(right)]]) {
+          if (from !== to) {
+            rule(from, fromOffset, to, toOffset, barGap);
+          }
+        }
+      }
+      // ... and nobody's card lies under the couple next to their parents:
+      // a child directly beneath another couple reads as theirs.
+      if (left.child.of !== right) {
+        rule(left.child.of, childOffset(left) + config.nodeWidth / 2, right, 0, clearGap);
+      }
+      if (right.child.of !== left) {
+        rule(left, left.width, right.child.of, childOffset(right) - config.nodeWidth / 2, clearGap);
+      }
+    }
+  }
+
+  // Narrowest: everything as far left as the rules allow, then as far right
+  // within that width. Any point between the two also satisfies the rules.
+  const count = units.length;
+  const leftmost = new Float64Array(count);
+  for (let pass = 0, changed = true; changed; pass += 1) {
+    if (pass > count + 2) {
+      throw new Error("pedigree compaction rules contain a cycle");
+    }
+    changed = false;
+    for (const { from, to, gap } of rules) {
+      if (leftmost[to] < leftmost[from] + gap - 1e-9) {
+        leftmost[to] = leftmost[from] + gap;
+        changed = true;
+      }
+    }
+  }
+  const width = Math.max(...units.map((entry) => leftmost[entry.index] + entry.width));
+  const rightmost = Float64Array.from(units, (entry) => width - entry.width);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const { from, to, gap } of rules) {
+      if (rightmost[from] > rightmost[to] - gap + 1e-9) {
+        rightmost[from] = rightmost[to] - gap;
+        changed = true;
+      }
+    }
+  }
+  const x = Float64Array.from(units, (entry) => (leftmost[entry.index] + rightmost[entry.index]) / 2);
+
+  // Each couple towards its child and its members' parents. First a row at
+  // a time: where every couple of the row would like to be, packed in order
+  // (least squares), and as much of that move as the rules with the rows
+  // above and below allow. A couple hemmed in by neighbours that want to go
+  // the same way cannot get there one at a time. Then couple by couple,
+  // within what its neighbours allow at that moment.
+  const lowerRules = units.map(() => []);
+  const upperRules = units.map(() => []);
+  for (const item of rules) {
+    lowerRules[item.to].push(item);
+    upperRules[item.from].push(item);
+  }
+  const linked = new Set(links);
+  const wanted = (entry) => {
+    const wants = [];
+    if (linked.has(entry)) {
+      wants.push(x[entry.child.of.index] + childOffset(entry) - entry.width / 2);
+    }
+    for (const parent of entry.parents) {
+      if (linked.has(parent)) {
+        wants.push(x[parent.index] + parent.width / 2 - childOffset(parent));
+      }
+    }
+    return wants.length ? wants.reduce((sum, value) => sum + value, 0) / wants.length : null;
+  };
+  // A couple and all their ancestors as one piece, towards the couple's
+  // child: a couple hemmed in by their own parents (who are centred on them
+  // and so have no wish to move) can only get there together with them.
+  const ancestry = (entry, into = []) => {
+    into.push(entry);
+    entry.parents.forEach((parent) => ancestry(parent, into));
+    return into;
+  };
+  const inPiece = new Uint32Array(count);
+  let pieceStamp = 0;
+  const byDepth = [...links].sort((a, b) => a.generation - b.generation || a.start - b.start);
+  for (let sweep = 0; sweep < 60; sweep += 1) {
+    let moved = 0;
+    for (const entry of sweep % 2 ? [...byDepth].reverse() : byDepth) {
+      const shift = x[entry.child.of.index] + childOffset(entry) - entry.width / 2 - x[entry.index];
+      if (Math.abs(shift) < 0.05) {
+        continue;
+      }
+      const piece = ancestry(entry);
+      pieceStamp += 1;
+      piece.forEach((member) => { inPiece[member.index] = pieceStamp; });
+      let part = 1;
+      for (const member of piece) {
+        const at = x[member.index];
+        if (shift < 0) {
+          part = Math.min(part, at / -shift);
+          for (const item of lowerRules[member.index]) {
+            if (inPiece[item.from] !== pieceStamp) {
+              part = Math.min(part, (at - x[item.from] - item.gap) / -shift);
+            }
+          }
+        } else {
+          part = Math.min(part, (width - member.width - at) / shift);
+          for (const item of upperRules[member.index]) {
+            if (inPiece[item.to] !== pieceStamp) {
+              part = Math.min(part, (x[item.to] - item.gap - at) / shift);
+            }
+          }
+        }
+      }
+      part = Math.max(0, part);
+      if (part * Math.abs(shift) < 0.05) {
+        continue;
+      }
+      piece.forEach((member) => { x[member.index] += part * shift; });
+      moved = Math.max(moved, part * Math.abs(shift));
+    }
+    if (moved < 0.5) {
+      break;
+    }
+  }
+  const rows = [...byGeneration.entries()].sort((a, b) => a[0] - b[0]).map(([, row]) => row);
+  const rowRules = rows.map((row) => [...new Set(row.flatMap((entry) => [...lowerRules[entry.index], ...upperRules[entry.index]]))]);
+  for (let sweep = 0; sweep < 200; sweep += 1) {
+    let moved = 0;
+    for (const index of sweep % 2 ? rows.keys() : [...rows.keys()].reverse()) {
+      const row = rows[index];
+      const from = row.map((entry) => x[entry.index]);
+      const to = packInOrder(
+        row.map((entry, position) => wanted(entry) ?? from[position]),
+        row.slice(1).map((entry, position) => row[position].width
+          + (row[position].component === entry.component ? config.nodeGap : config.componentGap))
+      ).map((value, position) => Math.min(width - row[position].width, Math.max(0, value)));
+      // The largest part of the move that breaks no rule.
+      const slack = () => rowRules[index].map((item) => x[item.to] - x[item.from] - item.gap);
+      const before = slack();
+      row.forEach((entry, position) => { x[entry.index] = to[position]; });
+      const after = slack();
+      let step = 1;
+      before.forEach((value, position) => {
+        if (after[position] < -1e-9) {
+          step = Math.min(step, Math.max(0, value) / (value - after[position]));
+        }
+      });
+      row.forEach((entry, position) => {
+        x[entry.index] = from[position] + step * (to[position] - from[position]);
+        moved = Math.max(moved, Math.abs(x[entry.index] - from[position]));
+      });
+    }
+    if (moved < 0.05) {
+      break;
+    }
+  }
+  const order = [...units].sort((a, b) => a.generation - b.generation || a.start - b.start);
+  for (let sweep = 0; sweep < 400; sweep += 1) {
+    let moved = 0;
+    for (const entry of sweep % 2 ? [...order].reverse() : order) {
+      const want = wanted(entry);
+      if (want === null) {
+        continue;
+      }
+      let low = 0;
+      let high = width - entry.width;
+      for (const item of lowerRules[entry.index]) {
+        low = Math.max(low, x[item.from] + item.gap);
+      }
+      for (const item of upperRules[entry.index]) {
+        high = Math.min(high, x[item.to] - item.gap);
+      }
+      const next = Math.min(high, Math.max(low, want));
+      moved = Math.max(moved, Math.abs(next - x[entry.index]));
+      x[entry.index] = next;
+    }
+    if (moved < 0.05) {
+      break;
+    }
+  }
+
+  for (const entry of units) {
+    let left = Math.round(x[entry.index] * 100) / 100;
+    for (const member of entry.unit.members) {
+      placed.get(member.instanceId).left = left;
+      left += config.nodeWidth + config.coupleGap;
+    }
+  }
 }
 
 /**

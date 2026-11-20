@@ -27,6 +27,15 @@ function git(args, options = {}) {
   return result.stdout;
 }
 
+// The release version is the first "## <version>" heading of the engine
+// changelog (templates/engine/CHANGELOG.md).
+export function engineVersionFrom(root = engineRoot) {
+  const changelog = fs.readFileSync(path.join(root, "templates", "engine", "CHANGELOG.md"), "utf8");
+  const version = /^## (\d+\.\d+\.\d+)\b/m.exec(changelog)?.[1];
+  if (!version) throw new Error("templates/engine/CHANGELOG.md needs a '## <major.minor.patch>' heading");
+  return version;
+}
+
 export function exportSettings(config = loadTreeConfig()) {
   const settings = config.engineExport || {};
   return {
@@ -143,6 +152,8 @@ export function buildEngineExport({ out, ref = "HEAD", root = engineRoot, config
       const { pkg, dropped } = exportPackageJson(content.toString("utf8"), kept, (config.engineExport?.dropSteps || []).map((entry) => new RegExp(entry)));
       pkg.name = "family-history-engine";
       pkg.license = "MIT";
+      pkg.version = engineVersionFrom(root);
+      if (config.engineExport?.publicRepo) pkg.repository = { type: "git", url: `https://github.com/${config.engineExport.publicRepo}.git` };
       // The owner's Vercel team never travels; the CLI uses the linked project.
       const scope = config.vercel?.scope;
       if (scope) for (const [name, command] of Object.entries(pkg.scripts)) pkg.scripts[name] = command.replaceAll(` --scope ${scope}`, "");
@@ -183,7 +194,7 @@ export function buildEngineExport({ out, ref = "HEAD", root = engineRoot, config
   const dropped = files.get("_dropped_scripts") || [];
   files.delete("_dropped_scripts");
   // The public repository's own README and licence.
-  for (const name of ["README.md", "LICENSE", ".github/workflows/ci.yml"]) {
+  for (const name of ["README.md", "LICENSE", "CHANGELOG.md", ".github/workflows/ci.yml"]) {
     const content = fs.readFileSync(path.join(root, "templates", "engine", name));
     for (const hit of scanText(content.toString("utf8"), terms)) violations.push({ file: name, ...hit });
     files.set(name, content);
@@ -206,13 +217,30 @@ function main() {
   const out = value("--out");
   const report = args.includes("--report");
   if (!out && !report) throw new Error("usage: node tools/engine-export.mjs --out <dir> [--ref HEAD] | --report");
-  const result = buildEngineExport({ out: report ? null : out, ref: value("--ref") || "HEAD" });
+  let result;
+  try {
+    result = buildEngineExport({ out: report ? null : out, ref: value("--ref") || "HEAD" });
+  } catch (error) {
+    // deploy:main validates in an export without .git; the early warning
+    // simply skips there (the release itself always runs the full gate).
+    if (args.includes("--warn") && /not a git repository/i.test(error.message)) {
+      console.log("engine privacy: skipped (no Git checkout)");
+      return;
+    }
+    throw error;
+  }
   const byFile = new Map();
   for (const violation of result.violations) {
     if (!byFile.has(violation.file)) byFile.set(violation.file, []);
     byFile.get(violation.file).push(violation);
   }
   console.log(`engine export: ${result.kept} files kept, ${result.excluded.length} excluded as tree-specific, ${result.dropped.length} package scripts dropped`);
+  if (byFile.size && args.includes("--warn")) {
+    // data:check's early warning: report, never block another session's commit.
+    console.log(`engine privacy WARNING: ${byFile.size} engine file(s) name this tree or its owner; move that data under tree/ before the next engine:release`);
+    for (const [file, hits] of byFile) console.log(`  ${file}: ${hits.slice(0, 3).map((hit) => `${hit.term} (${hit.reason})`).join("; ")}`);
+    return;
+  }
   if (byFile.size) {
     console.log(`PRIVACY GATE FAILED: ${byFile.size} file(s) name this tree or its owner`);
     for (const [file, hits] of [...byFile].sort((a, b) => b[1].length - a[1].length)) {

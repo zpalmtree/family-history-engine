@@ -1,6 +1,6 @@
 {
   "name": "family-history-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -160,10 +160,11 @@
     "tree:recency:stamp": "node tools/stamp-tree-recency.mjs",
     "tree:test": "node --test tools/tree-recency.test.mjs tools/tree-recency-policy.test.mjs",
     "orchestration:test": "node --test tools/analyze-codex-performance.test.mjs tools/cited-record-viewer.test.mjs tools/atomic-json-lock.test.mjs tools/publish-selection.test.mjs tools/publish-gate.test.mjs tools/registry-rows.test.mjs tools/registry-write.test.mjs tools/deploy-status.test.mjs tools/viewer-deployment-decision.test.mjs tools/familysearch-distribution.test.mjs tools/familysearch-catalog-annex.test.mjs tools/public-record-publication.test.mjs tools/subscription-record-projection.test.mjs tools/sync-desktop.test.mjs tools/validation-stamp.test.mjs tools/worktree-status.test.mjs",
-    "data:check": "npm run research:sync:inputs:check && npm run research:required:check && npm run research:provenance:check && npm run research:requests:check && npm run research:acquisition:attempts:check && npm run biography:check && npm run research:check && npm run research:kinship:check && npm run records:extract:snapshot:check && npm run records:extract:check && npm run life-stories:check && npm run life-stories:test && npm run page-depth:check && npm run exhibits:check && npm run exhibits:test && npm run notable:check && npm run notable:test && npm run research:test && npm run gro:test && npm run orchestration:test && npm run engine:test && npm run research:build:check && npm run research:current:check && npm run data:build:check && node tools/check-family-data.mjs && node tools/check-records-manifest.mjs && node tools/check-viewer-blob-inventory.mjs && node tools/check-viewer-sources.mjs && npm run records:atoms:check && npm run records:check:subscriptions && npm run records:check:people && npm run records:check:cited && npm run records:session:check",
+    "data:check": "npm run research:sync:inputs:check && npm run research:required:check && npm run research:provenance:check && npm run research:requests:check && npm run research:acquisition:attempts:check && npm run biography:check && npm run research:check && npm run research:kinship:check && npm run records:extract:snapshot:check && npm run records:extract:check && npm run life-stories:check && npm run life-stories:test && npm run page-depth:check && npm run exhibits:check && npm run exhibits:test && npm run notable:check && npm run notable:test && npm run research:test && npm run gro:test && npm run orchestration:test && npm run engine:test && npm run engine:privacy && npm run research:build:check && npm run research:current:check && npm run data:build:check && node tools/check-family-data.mjs && node tools/check-records-manifest.mjs && node tools/check-viewer-blob-inventory.mjs && node tools/check-viewer-sources.mjs && npm run records:atoms:check && npm run records:check:subscriptions && npm run records:check:people && npm run records:check:cited && npm run records:session:check",
     "tree:check": "node tools/validation-stamp.mjs tree:check -- npm run tree:check:full",
     "tree:check:full": "npm run data:check && npm run tree:test && node tools/layout-visual-tree.mjs --check && node tools/check-visual-tree.mjs",
     "tree:init": "node tools/tree-init.mjs",
+    "tree:upgrade": "node tools/tree-upgrade.mjs",
     "tree:new:check": "node tools/check-new-tree.mjs",
     "tree:config": "node tools/tree-config.mjs",
     "tree:branding": "node tools/tree-config.mjs --write-branding",
@@ -173,7 +174,7 @@
     "engine:release": "node tools/engine-release.mjs",
     "gedcom:export": "node tools/gedcom-export.mjs",
     "gedcom:import": "node tools/gedcom-import.mjs",
-    "engine:test": "node --test tools/tree-config.test.mjs tools/consents.test.mjs tools/gedcom.test.mjs tools/gedcom-export.test.mjs tools/gedcom-import.test.mjs tools/tree-init.test.mjs tools/engine-boundary.test.mjs tools/engine-export.test.mjs",
+    "engine:test": "node --test tools/tree-config.test.mjs tools/consents.test.mjs tools/gedcom.test.mjs tools/gedcom-export.test.mjs tools/gedcom-import.test.mjs tools/tree-init.test.mjs tools/engine-boundary.test.mjs tools/engine-export.test.mjs tools/tree-upgrade.test.mjs",
     "site:stage": "node tools/build-hosted-viewer.mjs",
     "places:gazetteer": "node tools/place-gazetteer.mjs",
     "places:basemap": "node tools/build-place-basemap.mjs",
@@ -243,7 +244,8 @@
     "requests:inbox:personal": "node tools/personal-mailbox.mjs",
     "inbox:tidy": "node tools/inbox-tidy.mjs",
     "mailbox:personal:setup": "node tools/personal-mailbox.mjs --setup",
-    "mailbox:personal:status": "node tools/personal-mailbox.mjs --status"
+    "mailbox:personal:status": "node tools/personal-mailbox.mjs --status",
+    "engine:privacy": "node tools/engine-export.mjs --report --ref WORKTREE --warn"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.131.0",
@@ -262,5 +264,9 @@
     "postcss": "8.5.18"
   },
   "packageManager": "pnpm@11.8.0+sha512.c1f5e7c4cb241c8f174b743851d82f42b802324afc8b0f116b96adb15aa06664948dde36960a3ba1079ba5b4b29dd0140135b94b5b5f5263592249d68e555f26",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zpalmtree/family-history-engine.git"
+  }
 }

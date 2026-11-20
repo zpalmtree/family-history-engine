@@ -231,7 +231,7 @@
     .tree-controls[data-hidden-for-chart="true"] { visibility: hidden; }
     .visual-tree-panel:is([data-chart-mode="pedigree"], [data-chart-mode="fan"]) :is(.tree-fullscreen-zoom, .tree-fullscreen-controls [data-tree-zoom], .tree-more-menu [data-tree-zoom="read"]) { display: none !important; }
 
-    .tree-people-search { position: relative; z-index: 9; display: flex; align-items: center; flex: 1 1 220px; max-width: 340px; }
+    .tree-people-search { position: relative; z-index: 9; display: flex; align-items: center; flex: 1 1 130px; min-width: 130px; max-width: 340px; }
     .tree-people-search input {
       width: 100%;
       min-height: 36px;
@@ -378,7 +378,7 @@
       line-height: 1.22;
       will-change: transform;
     }
-    .tree-gutter-label small { display: block; margin-top: 2px; color: var(--muted); font-weight: 400; font-size: 0.7rem; }
+    .tree-gutter-label small { display: block; margin-top: 2px; color: var(--muted); font-weight: 400; font-size: 0.7rem; white-space: nowrap; }
     .tree-gutter-label .tree-gutter-short { display: none; }
     .tree-gutter-readout {
       position: absolute;
@@ -577,6 +577,9 @@
     .tree-links .mixed { stroke: var(--muted) !important; }
     .tree-links .couple-link, .tree-links .sibling-link { stroke-width: calc(var(--link-w, 1.8px) * 0.9); }
     .tree-links .is-related { stroke-width: calc(var(--link-w, 1.8px) * 1.8); }
+    /* Zoomed out, the boughs run side by side for a long way: drawn finer
+       there, they read as separate lines instead of one thick band. */
+    #visual-tree[data-zoom-tier="flags"] .tree-links .bough-link:not(.is-related) { stroke-width: calc(var(--link-w, 1.8px) * 0.5); }
 
     /* The marriage year sits beside the couple's drop line, on the side the
        line does not turn towards, so it never covers the line to the child. */
@@ -612,16 +615,23 @@
       font-weight: 600;
       line-height: 20px;
       white-space: nowrap;
-      max-width: 240px;
+      max-width: 228px;
       overflow: hidden;
       text-overflow: ellipsis;
       cursor: pointer;
     }
     .tree-bough-label.side-left { transform: translate(-100%, -50%); }
+    /* The far end of a bough: the child's name beside the drop, small. */
+    .tree-bough-label.is-far { max-width: 420px; font-family: inherit; font-size: 13px; font-weight: 500; line-height: 18px; }
+    /* A finger needs more to press than the letters. */
+    @media (pointer: coarse) { .tree-bough-label { padding-block: calc(11px * var(--per-px, 1)); } }
     .tree-bough-label:hover, .tree-bough-label:focus-visible { text-decoration: underline; }
     #visual-tree[data-zoom-tier="place"] .tree-bough-label { font-size: calc(19px * var(--zoom-ease, 1)); line-height: 24px; }
     #visual-tree[data-zoom-tier="summary"] .tree-bough-label { font-size: calc(26px * var(--zoom-ease, 1)); line-height: 30px; }
     #visual-tree[data-zoom-tier="name"] .tree-bough-label { font-size: calc(32px * var(--zoom-ease, 1)); line-height: 36px; }
+    #visual-tree[data-zoom-tier="place"] .tree-bough-label.is-far { font-size: 15px; line-height: 19px; }
+    #visual-tree[data-zoom-tier="summary"] .tree-bough-label.is-far { font-size: 18px; line-height: 21px; }
+    #visual-tree[data-zoom-tier="name"] .tree-bough-label.is-far { display: none; }
     #visual-tree[data-zoom-tier="flags"] .tree-bough-label { display: none; }
     .tree-connector-badge {
       position: absolute;
@@ -667,6 +677,9 @@
        frames over 33ms against 2). */
     #visual-tree[data-skip="true"] .tree-node { content-visibility: auto; }
     .tree-node:hover { border-color: var(--rule-strong); }
+    @media (hover: hover) {
+      #visual-tree-stage:not(.is-moving) #visual-tree:not([data-zoom-tier="flags"]) .tree-node:hover { box-shadow: 0 0 0 2px color-mix(in srgb, var(--line, var(--accent)) 60%, var(--ink)), 0 3px 10px rgba(36, 27, 15, 0.16); }
+    }
     .tree-node:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
     .tree-node.unresolved { border-top-style: dashed; border-top-color: var(--red); }
     .tree-node.is-selected { outline: 3px solid var(--line); outline-offset: 3px; }
@@ -1229,6 +1242,10 @@
       box-shadow: 0 0 0 1.5px var(--surface);
     }
     .tree-notable-mark .notable-icon { width: 11px; height: 11px; }
+    /* Under 22%, where tiles are a few pixels across, the marks are smaller
+       so that they sit on the tree instead of covering it. */
+    .tree-notable-marks[data-size="small"] .tree-notable-mark { width: 12px; height: 12px; margin: -6px 0 0 -6px; border-width: 1px; box-shadow: 0 0 0 1px var(--surface); }
+    .tree-notable-marks[data-size="small"] .tree-notable-mark .notable-icon { width: 8px; height: 8px; }
     .tree-notable-mark { pointer-events: none; }
     /* Where icons would pile on top of each other (far out, in a crowded
        part) only the more prominent person's icon is drawn; the others
@@ -1252,6 +1269,21 @@
       cursor: pointer;
     }
     .tree-key .tree-key-notable .notable-icon { width: 13px; height: 13px; color: var(--gold); }
+    /* "Added in the last 5 days" in the key shows or hides the New markers. */
+    .tree-key .tree-key-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 10px 2px 5px;
+      color: inherit;
+      background: transparent;
+      border: 1px solid var(--rule-strong);
+      border-radius: 999px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .tree-key .tree-key-new[aria-pressed="false"] { color: var(--muted); border-style: dashed; }
+    .tree-key .tree-key-new[aria-pressed="false"] .key-new { background: var(--muted); }
     .tree-key .tree-key-notable[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
     .tree-key .tree-key-notable[aria-pressed="true"] .notable-icon { color: currentColor; }
     .person-distinction {
@@ -1706,7 +1738,7 @@
 
     /* ---------- Narrow screens ---------- */
     @media (max-width: 1100px) {
-      .tree-people-search { max-width: none; order: 5; flex-basis: 100%; }
+      .tree-people-search { max-width: none; order: 5; flex: 1 1 200px; }
       .tree-controls { margin-left: 0; }
     }
     @media (max-width: 999px) {
@@ -1818,7 +1850,9 @@
       .tree-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; }
       .tree-mobile-view { grid-area: 1 / 1; min-width: 0; }
       .tree-chart-segment { grid-area: 1 / 2 / 2 / 4; flex-wrap: nowrap; }
-      .tree-chart-segment button { flex: 1; }
+      .tree-chart-segment button { flex: 1 1 auto; min-width: 0; padding-inline: 8px; }
+      .tree-people-search input { padding-inline: 10px; }
+      .tree-people-search input::placeholder { font-size: 14.5px; }
       .tree-people-search { grid-area: 2 / 1; min-width: 0; max-width: none; }
       .tree-toolbar > [data-tree-files] { grid-area: 2 / 2; }
       .tree-more { grid-area: 2 / 3; }
@@ -1937,7 +1971,7 @@
             <span class="tree-origin-key" data-origin-key="United States"><img class="flag-icon" src="assets/flags/us.svg" alt="">United States</span>
             <i class="tree-key-sep tree-key-detail" aria-hidden="true"></i>
             <span class="tree-key-detail"><i class="key-line unresolved" aria-hidden="true"></i>Unresolved</span>
-            <span><i class="key-new" aria-hidden="true">New</i>Added in the last 5 days</span>
+            <button type="button" class="tree-key-new" data-new-marks-toggle aria-pressed="true" title="Show or hide the marker on people added in the last 5 days"><i class="key-new" aria-hidden="true">New</i>Added in the last 5 days</button>
             <i class="tree-key-sep tree-key-detail" aria-hidden="true"></i>
             <span class="tree-key-lines" data-tree-line-key></span>
             <button type="button" class="tree-key-notable" data-notable-icons-toggle aria-pressed="true" title="Show or hide the symbols that mark notable people on the map: knights, gentry, office-holders, the well-off and others whose records stand out"><svg class="notable-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.2l7.1-.6z"></path></svg>Notable icons</button>
@@ -2259,7 +2293,7 @@
       const homePin = document.querySelector("[data-tree-home-pin]");
       if (homePin) {
         homePin.title = `Back to ${homeNames}`;
-        homePin.textContent = rootNames.join(" & ");
+        homePin.textContent = "Home";
       }
       // The far-out side captions and the locator's halves name the first two roots.
       const sideLabels = [...document.querySelectorAll("[data-tree-side]")];
@@ -4852,6 +4886,10 @@
       const onScreen = scale >= 1 ? 1.8 * scale : scale < farZoomThreshold ? 1 : Math.max(1.3, 1.8 * Math.sqrt(scale));
       const width = Math.exp(Math.round(Math.log(onScreen / scale) / step) * step).toFixed(2);
       if (links.style.getPropertyValue("--link-w") !== `${width}px`) links.style.setProperty("--link-w", `${width}px`);
+      // Map units per screen pixel, to two figures: for the few things in
+      // the map that need a size on screen (a finger-sized press area).
+      const perPixel = Number((1 / scale).toPrecision(2));
+      if (tree.style.getPropertyValue("--per-px") !== String(perPixel)) tree.style.setProperty("--per-px", String(perPixel));
     }
 
     // During a glide the card tier is held (see glideTreeTo), so a long trip
@@ -6007,9 +6045,12 @@
         const upTo = (generation) => getViewNodes(familyData.visualTree, view)
           .filter((node) => node.generation <= generation).map((node) => node.personId);
         const depth = view.core?.generations || 0;
+        // With more of the tree above, the people are fitted to the foot of
+        // the map and the room left over shows the generations above them.
+        const anchor = (shown) => (view.maxGeneration ?? 0) > shown ? "bottom" : 0.5;
         let shown = depth;
         while (shown > 0 && !target) {
-          const fit = peopleFitTarget(upTo(shown), 0.85, shown < 3 ? 0.55 : 0.5);
+          const fit = peopleFitTarget(upTo(shown), 0.85, anchor(shown));
           if (fit && fit.scale >= 0.45) target = fit;
           else shown -= 1;
         }
@@ -6017,8 +6058,8 @@
         // fits in height at much the same scale, the view is placed to show
         // it uncut from top to bottom (its outer cards run off the sides).
         if (target && shown < depth) {
-          const taller = peopleFitTarget(upTo(shown), 0.85, 0.5, upTo(shown + 1));
-          if (taller && taller.scale >= 0.45 && taller.scale >= target.scale * 0.9) target = taller;
+          const taller = peopleFitTarget(upTo(shown), 0.85, anchor(shown + 1), upTo(shown + 1));
+          if (taller && taller.scale >= 0.45 && taller.scale >= target.scale * 0.8) target = taller;
         }
         target ||= peopleFitTarget(homePersonIds, 0.85, 0.6);
       }
@@ -6062,7 +6103,8 @@
         const margin = clamp(usable * 0.15, 32, 80);
         const scale = Math.max(getTreeMinScale(view), Math.min(maxScale, (width - 80) / (right - left), (usable - margin) / (bottom - top)));
         const target = { scale, x: width / 2 - ((left + right) / 2) * scale };
-        target.y = usable * (Number.isFinite(anchorY) ? anchorY : 0.5) - ((top + bottom) / 2) * scale;
+        target.y = anchorY === "bottom" ? usable - 20 - bottom * scale
+          : usable * (Number.isFinite(anchorY) ? anchorY : 0.5) - ((top + bottom) / 2) * scale;
         target.y = Math.min(target.y, usable - 16 - bottom * scale);
         return clampTreeTarget(target);
       };
@@ -6085,7 +6127,7 @@
     }
 
     // Centres a person's card at a readable scale, with a glide.
-    function glideToPerson(personId, { instanceId = null, minScale = 0.65, scale = null, onArrive = null } = {}) {
+    function glideToPerson(personId, { instanceId = null, minScale = 0.55, scale = null, onArrive = null } = {}) {
       const view = getTreeView();
       const nodes = getViewNodes(familyData.visualTree, view).filter((item) => item.personId === personId);
       const node = nodes.find((item) => instanceId && item.instanceId === instanceId) || nodes[0];
@@ -6096,7 +6138,7 @@
       glideTreeTo(clampTreeTarget({
         scale: next,
         x: mapVisibleWidth(viewport) / 2 - (node.x + metrics.labelGutter + familyData.visualTree.nodeWidth / 2) * next,
-        y: viewport.clientHeight / 2 - (node.y + familyData.visualTree.nodeHeight / 2) * next
+        y: (viewport.clientHeight - mapBottomInset()) / 2 - (node.y + familyData.visualTree.nodeHeight / 2) * next
       }), { onArrive });
       return true;
     }
@@ -6140,13 +6182,31 @@
       // where that one is going (a held key would otherwise creep).
       const current = treeGlide?.to?.scale ?? treeTransform.scale;
       const next = direction > 0
-        ? stops.find((stop) => stop > current * 1.04) ?? maxTreeScale
-        : [...stops].reverse().find((stop) => stop < current / 1.04) ?? min;
+        ? stops.find((stop) => stop > current * 1.1) ?? maxTreeScale
+        : [...stops].reverse().find((stop) => stop < current / 1.1) ?? min;
       if (Math.abs(Math.log(next / treeTransform.scale)) < 0.002) return;
       // Stepping out to the whole tree lands on the whole-tree view itself.
       if (direction < 0 && next <= min * 1.001) { fitVisualTree({ animate: true }); return; }
       // From the whole tree (and for as long as only the buttons are used
       // after it) each step closes in on the root family, ending at Home.
+      const fromHome = (treeViewMode === "home" || treeViewMode === "from-home") && !selectedPersonId && !focusedLineage && getTreeView().core;
+      if (fromHome) {
+        // From Home (and for as long as only the buttons are used after
+        // it) the root family stays where Home put them, at the foot of
+        // the map: zooming out brings in more of the tree above them
+        // instead of an empty band below.
+        const viewport = document.querySelector("#visual-tree-viewport");
+        const root = getViewNodes(familyData.visualTree, getTreeView()).filter((node) => node.generation === 0);
+        if (root.length) {
+          const metrics = getTreeMetrics(getTreeView());
+          const x = (Math.min(...root.map((node) => node.x)) + Math.max(...root.map((node) => node.x)) + familyData.visualTree.nodeWidth) / 2 + metrics.labelGutter;
+          const bottom = Math.max(...root.map((node) => node.y)) + familyData.visualTree.nodeHeight;
+          const rootX = treeTransform.x + x * treeTransform.scale;
+          glideTreeTo(clampTreeTarget({ scale: next, x: rootX - x * next, y: viewport.clientHeight - mapBottomInset() - 20 - bottom * next }),
+            { mode: "from-home", duration: 170 });
+          return;
+        }
+      }
       const towardsHome = (treeViewMode === "whole" || treeViewMode === "towards-home") && !selectedPersonId && !focusedLineage;
       if (towardsHome) {
         const viewport = document.querySelector("#visual-tree-viewport");
@@ -6471,7 +6531,7 @@
       // birth windows, then the years their people are named in records.
       const estimated = all.map((events) => events.estimate ? Math.round((Number(events.estimate.from) + Number(events.estimate.to)) / 2) : 0)
         .filter(Boolean).sort((a, b) => a - b);
-      if (estimated.length) return decades(estimated, "born about");
+      if (estimated.length) return decades(estimated, "born c.");
       const named = all.map((events) => Number(events.recorded?.from) || eventYear(events.died) || eventYear(events.buried)).filter(Boolean).sort((a, b) => a - b);
       return decades(named, "living");
     }
@@ -6484,6 +6544,8 @@
     let mapRowCards = new Map();
     let mapHomeCards = [];
     let mapLinks = [];
+    // Marriage years by the height they sit at: the left edge of each, in map units.
+    let mapMarriageRows = new Map();
     let mapRowGap = 56;
     let mapLocator = null;
 
@@ -6557,6 +6619,11 @@
           const rowHasCards = (mapRowCards.get(row.y) || []).some(onScreen);
           visible = rowHasCards && ![...mapRowCards].some(([y, xs]) => treeTransform.y + (y + cardHeight + reach) * scale > top - 1
             && treeTransform.y + (y - reach) * scale < top + row.height + 1 && xs.some(covers));
+          // ... nor a marriage year, which sits in the same gap between rows.
+          if (visible && !overviewTiles) {
+            visible = ![...mapMarriageRows].some(([y, xs]) => Math.abs(treeTransform.y + y * scale - (top + row.height / 2)) < row.height / 2 + 12
+              && xs.some((x) => treeTransform.x + x * scale < row.width + 4 && treeTransform.x + (x + 150) * scale > 0));
+          }
           if (rowHasCards) {
             const middle = treeTransform.y + (row.y + cardHeight / 2) * scale;
             const distance = Math.abs(middle - height * 0.45);
@@ -6961,6 +7028,8 @@
         // last travelled to: a chip for every card on screen was a crowd
         // of arrows.
         if (!focused(origin)) continue;
+        // At a bough's far end its own label already leads back to the child.
+        if (link.bough && !childIn) continue;
         const priority = true;
         // Where the drawn line leaves the screen.
         let exit = null;
@@ -7000,6 +7069,12 @@
       // Chips keep clear of the labels already laid over the map, and of
       // the locator strip in the corner.
       const boxes = [...avoid];
+      // ... and of the cards on screen: a chip slides along its edge rather
+      // than sit on someone.
+      for (const card of mapCards) {
+        if (card.x + cardWidth < view.left || card.x > view.right || card.y + cardHeight < view.top || card.y > view.bottom) continue;
+        boxes.push({ x: treeTransform.x + card.x * scale, y: treeTransform.y + card.y * scale, width: cardWidth * scale, height: cardHeight * scale });
+      }
       const locator = document.querySelector("[data-tree-locator]");
       if (locator && !locator.hidden) {
         boxes.push(perMapLayout("locatorBox", () => {
@@ -7113,7 +7188,7 @@
 
     function renderTreeCard(node) {
       const profile = treePersonProfile(node.personId);
-      const isNewNode = treeRecency.isNewTreeNode(node.treeAddedAt);
+      const isNewNode = newMarksOn() && treeRecency.isNewTreeNode(node.treeAddedAt);
       const flags = countryFlagProfile(profile);
       const lifeYears = profile ? compactLifeYears(profile.events) : "";
       const collateralView = focusedLineage ? null : collateralViewFor(currentTreeView);
@@ -7191,6 +7266,7 @@
         if (!child || !parents.length || !connector.segments?.length) return null;
         return {
           id: connector.id,
+          bough: Boolean(connector.bough),
           child,
           parents,
           segments: connector.segments.map((segment) => ({ x1: segment.x1 + metrics.labelGutter, y1: segment.y1, x2: segment.x2 + metrics.labelGutter, y2: segment.y2 }))
@@ -7205,7 +7281,7 @@
           const colorId = connectorPath.personId;
           const line = colorId && ["confirmed", "candidate"].includes(connectorPath.status) ? lineOf(colorId) : null;
           return `
-          <path class="${kindClass} ${connectorPath.kind === "trunk" ? "family-trunk" : ""} ${attribute(connectorPath.status)} ${line ? "line-colored" : ""}"
+          <path class="${kindClass} ${connectorPath.kind === "trunk" ? "family-trunk" : ""} ${connector.bough && connectorPath.kind !== "parent" ? "bough-link" : ""} ${attribute(connectorPath.status)} ${line ? "line-colored" : ""}"
             ${line ? `style="--line: ${line.color}"` : ""}
             data-tree-connector="${attribute(connector.id)}"
             data-tree-connector-part="${index}"
@@ -7240,6 +7316,8 @@
       const tintedRows = new Set(rows.filter((row) => row.generation % 2 === 1).map((row) => row.y));
       const bands = rows.filter((row) => tintedRows.has(row.y)).map((row) => `
         <div class="tree-band" style="top: ${row.y - gap / 2}px; height: ${chart.nodeHeight + gap}px"></div>`).join("");
+      const marriageRows = new Map();
+      mapMarriageRows = marriageRows;
       const marriages = (view.connectors || []).filter((connector) => connector.style === "couple-unit"
         && connector.parentPersonIds?.length === 2 && connector.junction).map((connector) => {
         const year = coupleMarriageYear(...connector.parentPersonIds);
@@ -7248,11 +7326,19 @@
         const tinted = parent && tintedRows.has(parent.y);
         // The year goes beside the drop, on the side away from the bar that
         // turns towards the child (the right when the drop runs straight).
-        const { x, y } = connector.junction;
-        const bar = (connector.segments || []).find((segment) => segment.y1 === y && segment.y2 === y && segment.x1 !== segment.x2
+        // In the family core a bar can run on a lower track, a long way
+        // under the couple: the year stays up beside them.
+        const { x } = connector.junction;
+        const barY = connector.junction.y;
+        const y = parent ? parent.y + chart.nodeHeight + (view.config?.familyBarOffset ?? 30) : barY;
+        const bar = (connector.segments || []).find((segment) => segment.y1 === barY && segment.y2 === barY && segment.x1 !== segment.x2
           && (segment.x1 === x || segment.x2 === x));
         const left = bar && Math.max(bar.x1, bar.x2) > x;
         const offset = left ? -3 : 3;
+        // Where the year lies, for the floating row labels to keep clear of
+        // (150 units covers it at every tier).
+        if (!marriageRows.has(y)) marriageRows.set(y, []);
+        marriageRows.get(y).push(left ? x + metrics.labelGutter - 150 : x + metrics.labelGutter);
         return `<span class="tree-marriage${left ? " side-left" : ""}" style="left: ${x + offset + metrics.labelGutter}px; top: ${y - 15}px;${tinted ? " background: var(--band-b);" : ""}" title="Married ${attribute(year)}">m. ${html(year)}</span>`;
       }).join("");
       // A bough carries the surname it leads to (the father's, as the
@@ -7265,9 +7351,20 @@
         const line = lineOf(connector.childPersonId);
         const trunk = child.x + chart.nodeWidth / 2;
         const outward = connector.junction.x + metrics.labelGutter < trunk ? "left" : "right";
-        // On the inner side of the trunk, under the lowest bough.
-        return `<button type="button" class="tree-bough-label${outward === "right" ? " side-left" : ""}" data-bough="${attribute(connector.id)}" tabindex="-1"
-          style="left: ${trunk + (outward === "left" ? 8 : -8)}px; top: ${child.y - 24}px;${line ? ` --line: ${line.color};` : ""}" title="Go to ${attribute(child.name)}'s parents">${outward === "left" ? "← " : ""}${html(surname)}${outward === "right" ? " →" : ""}</button>`;
+        // At the core: on the outer side of the trunk, under the lowest
+        // bough, so that where the boughs change direction the two names
+        // face away from each other. At the far end: the child's name
+        // under the bar where it leaves the drop from the parents, small
+        // enough to fit above the next bough's track.
+        const nearLabel = `<button type="button" class="tree-bough-label${outward === "left" ? " side-left" : ""}" data-bough="${attribute(connector.id)}" tabindex="-1"
+          style="left: ${trunk + (outward === "left" ? -8 : 8)}px; top: ${child.y - 24}px;${line ? ` --line: ${line.color};` : ""}" title="Go to ${attribute(child.name)}'s parents">${outward === "left" ? "← " : ""}${html(surname)}${outward === "right" ? " →" : ""}</button>`;
+        const farLabel = `<button type="button" class="tree-bough-label is-far${outward === "right" ? " side-left" : ""}" data-bough-child="${attribute(connector.id)}" tabindex="-1"
+          style="left: ${connector.junction.x + metrics.labelGutter + (outward === "left" ? 10 : -10)}px; top: ${connector.junction.y + 13}px;${line ? ` --line: ${line.color};` : ""}" title="Go to ${attribute(child.name)}">${outward === "right" ? "← " : ""}to ${html(child.name)}${outward === "left" ? " →" : ""}</button>`;
+        // (The floating row labels keep clear of the name at the core.)
+        const labelY = child.y - 24;
+        if (!marriageRows.has(labelY)) marriageRows.set(labelY, []);
+        marriageRows.get(labelY).push(outward === "left" ? trunk - 158 : trunk + 8, outward === "left" ? trunk - 238 : trunk + 88);
+        return nearLabel + farLabel;
       }).join("");
       const nodes = nodesForView.map(renderTreeCard).join("");
 
@@ -7307,7 +7404,7 @@
       gutter.dataset.floating = String(getComputedStyle(gutter).position === "absolute");
       mapRows = rows.map((row) => ({ ...row, label: generationRowLabel(row.generation, view), era: rowEra(row.personIds) }));
       const shortLabel = (label) => label.replace(/× great-grandparents$/, "× great");
-      const shortEra = (era) => era.replace(/^born about /, "c. ").replace(/^born /, "");
+      const shortEra = (era) => era.replace(/^born c\. /, "c. ").replace(/^born /, "");
       gutter.innerHTML = mapRows.map((row, index) => `<div class="tree-gutter-label" data-row="${index}"><span class="tree-gutter-long">${html(row.label)}</span><span class="tree-gutter-short">${html(shortLabel(row.label))}</span>${row.era ? `<small class="tree-gutter-long">${html(row.era)}</small><small class="tree-gutter-short">${html(shortEra(row.era))}</small>` : ""}</div>`).join("");
       mapRows.forEach((row, index) => { row.element = gutter.querySelector(`[data-row="${index}"]`); });
 
@@ -7924,6 +8021,32 @@
       else revealNotablePerson(personId);
     }
 
+    // The New marker on cards. A marker on a large share of the tree marks
+    // nothing, so unless the viewer has chosen, it shows only while the
+    // people added in the last 5 days are at most a tenth of the tree. The
+    // New people list in the heading is there either way.
+    let newMarksShown = null;
+    function newMarksOn() {
+      if (newMarksShown === null) {
+        let saved = null;
+        try { saved = localStorage.getItem("familyTree.newMarks"); } catch {}
+        if (saved === "on" || saved === "off") newMarksShown = saved === "on";
+        else {
+          const people = familyData.people || [];
+          newMarksShown = people.filter((person) => treeRecency.isNewTreeNode(person.treeAddedAt)).length <= people.length * 0.1;
+        }
+      }
+      return newMarksShown;
+    }
+
+    function setNewMarks(shown, { remember = true } = {}) {
+      const changed = newMarksShown !== shown;
+      newMarksShown = shown;
+      if (remember) { try { localStorage.setItem("familyTree.newMarks", shown ? "on" : "off"); } catch {} }
+      document.querySelectorAll("[data-new-marks-toggle]").forEach((button) => button.setAttribute("aria-pressed", String(shown)));
+      if (changed && chartState.mode === "map") renderVisualTree({ fit: false });
+    }
+
     function setNotableIcons(shown) {
       const panel = document.querySelector(".visual-tree-panel");
       if (shown) delete panel.dataset.notableIcons;
@@ -7942,6 +8065,9 @@
       setNotableIcons(saved !== "off");
       document.querySelectorAll("[data-notable-icons-toggle]").forEach((button) => button.addEventListener("click", () =>
         setNotableIcons(button.getAttribute("aria-pressed") !== "true")));
+      setNewMarks(newMarksOn(), { remember: false });
+      document.querySelectorAll("[data-new-marks-toggle]").forEach((button) => button.addEventListener("click", () =>
+        setNewMarks(button.getAttribute("aria-pressed") !== "true")));
       document.querySelector("[data-tree-notable-open]")?.addEventListener("click", openNotableDialog);
       const dialog = document.querySelector("#tree-notable-dialog");
       dialog.addEventListener("click", (event) => {
@@ -7974,6 +8100,8 @@
       const visible = tree.dataset.zoomTier === "flags" && chartState.mode === "map";
       host.dataset.visible = String(visible);
       if (!visible) return;
+      const size = tree.dataset.stamp === "true" ? "normal" : "small";
+      if (host.dataset.size !== size) host.dataset.size = size;
       const cards = mapNotableCards;
       if (host.childElementCount !== cards.length || cards.some((card, index) => host.children[index].dataset.for !== card.instanceId)) {
         host.innerHTML = cards.map((card) => `<span class="tree-notable-mark" data-for="${attribute(card.instanceId)}" data-person="${attribute(card.personId)}" title="${attribute(card.title)}">${notableIcon(card.category)}</span>`).join("");
@@ -8021,7 +8149,7 @@
       document.querySelector("[data-tree-intro-links]").innerHTML = [
         notableCount ? `<button type="button" data-intro-action="notable" class="tree-intro-notable">${notableIcon("gentry")}Notable people (${notableCount})</button>` : "",
         recent.length ? `<button type="button" data-intro-action="new" class="tree-intro-new">New people (${recent.length})</button>` : ""
-      ].filter(Boolean).join(" · ");
+      ].filter(Boolean).join("");
       document.querySelector("[data-tree-line-key]").innerHTML = familyLines.lines.map((line) =>
         `<span title="${attribute(`${line.label} line: ${line.members} people, through ${peopleById.get(line.personId)?.name || ""}`)}"><i style="background: ${line.color}"></i>${html(line.label)}</span>`).join("");
       return recent;
@@ -8108,11 +8236,14 @@
         card?.classList.add("search-match");
         chipFocusIds = new Set([node.instanceId]);
         refreshMarkedCard();
-        glideTreeTo({
-          scale: 1,
-          x: mapVisibleWidth(viewport) / 2 - node.x - metrics.labelGutter - familyData.visualTree.nodeWidth / 2,
-          y: (viewport.clientHeight - (innerWidth <= 900 ? 60 : 0)) / 2 - node.y - familyData.visualTree.nodeHeight / 2
-        }, { onArrive: () => card?.focus({ preventScroll: true }) });
+        // At the zoom the map is at when that is readable (55% or more),
+        // so the cards do not change tier on the way.
+        const landing = Math.max(treeTransform.scale, 0.55);
+        glideTreeTo(clampTreeTarget({
+          scale: landing,
+          x: mapVisibleWidth(viewport) / 2 - (node.x + metrics.labelGutter + familyData.visualTree.nodeWidth / 2) * landing,
+          y: (viewport.clientHeight - mapBottomInset()) / 2 - (node.y + familyData.visualTree.nodeHeight / 2) * landing
+        }), { onArrive: () => card?.focus({ preventScroll: true }) });
       }
       function render() {
         const query = normalizePersonSearch(input.value);
@@ -8278,11 +8409,11 @@
       const viewport = document.querySelector("#visual-tree-viewport");
       if (!node || !viewport?.clientWidth) return;
       const metrics = getTreeMetrics(view);
-      const scale = Math.max(treeTransform.scale, 0.65);
+      const scale = Math.max(treeTransform.scale, 0.55);
       glideTreeTo(clampTreeTarget({
         scale,
         x: mapVisibleWidth(viewport) / 2 - (node.x + metrics.labelGutter + familyData.visualTree.nodeWidth / 2) * scale,
-        y: viewport.clientHeight / 2 - (node.y + familyData.visualTree.nodeHeight / 2) * scale
+        y: (viewport.clientHeight - mapBottomInset()) / 2 - (node.y + familyData.visualTree.nodeHeight / 2) * scale
       }));
     }
 
@@ -8370,6 +8501,8 @@
         if (link) {
           event.preventDefault();
           const id = link.dataset.personLink;
+          setPeekedCard(null);
+          document.querySelectorAll("#visual-tree .tree-node:is(.is-arrived, .search-match)").forEach((card) => card.classList.remove("is-arrived", "search-match"));
           openTreePersonDetails(id);
           if (chartState.mode === "map") panMapToPerson(id);
           const title = document.querySelector("#tree-person-dialog-title");
@@ -8986,7 +9119,12 @@
         }
         if (event.target.closest(mapControlSelector)) return;
         const bough = event.target.closest(".tree-bough-label");
-        if (bough) { event.preventDefault(); dismissMobileHint(); followEdgeChip({ dataset: { chip: `parents:${bough.dataset.bough}` } }); return; }
+        if (bough) {
+          event.preventDefault();
+          dismissMobileHint();
+          followEdgeChip({ dataset: { chip: bough.dataset.boughChild ? `child:${bough.dataset.boughChild}` : `parents:${bough.dataset.bough}` } });
+          return;
+        }
         refreshMapBox();
         // On touch the locator strip takes a tap (go there); a drag that
         // starts on it moves the map like any other.

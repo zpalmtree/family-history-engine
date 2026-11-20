@@ -15,7 +15,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { buildEngineExport } from "./engine-export.mjs";
+import { buildEngineExport, engineVersionFrom } from "./engine-export.mjs";
 import { loadTreeConfig } from "./tree-config.mjs";
 
 const RELEASE_AUTHOR = ["-c", "user.name=family-history-engine", "-c", "user.email=family-history-engine@users.noreply.github.com"];
@@ -59,7 +59,18 @@ function main() {
       return;
     }
     run("git", [...RELEASE_AUTHOR, "commit", "--quiet", "-m", message], { cwd: cloneDir });
-    run("git", ["push", "--quiet", "origin", "HEAD"], { cwd: cloneDir });
+    // Pushed over SSH: a CLI OAuth token without the workflow scope cannot
+    // update the repository's CI workflow.
+    run("git", ["push", "--quiet", `git@github.com:${repo}.git`, "HEAD:main"], { cwd: cloneDir });
+    // Tag the release with the changelog's version unless that tag exists.
+    const version = engineVersionFrom();
+    const tags = run("git", ["ls-remote", "--tags", `https://github.com/${repo}.git`, `refs/tags/v${version}`], { cwd: cloneDir }).trim();
+    if (tags) console.log(`Tag v${version} already exists; add a new changelog heading to tag the next release.`);
+    else {
+      run("git", [...RELEASE_AUTHOR, "tag", "-a", `v${version}`, "-m", `family-history-engine ${version}`], { cwd: cloneDir });
+      run("git", ["push", "--quiet", `git@github.com:${repo}.git`, `v${version}`], { cwd: cloneDir });
+      console.log(`Tagged v${version}.`);
+    }
     console.log(`Released to https://github.com/${repo}: ${run("git", ["rev-parse", "--short", "HEAD"], { cwd: cloneDir }).trim()}`);
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
