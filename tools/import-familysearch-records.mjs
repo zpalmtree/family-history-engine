@@ -104,14 +104,15 @@ for (const target of queue.targets) {
     length: contents.length,
     peopleVerifiedAt: target.peopleVerifiedAt,
     peopleVerificationBasis: target.peopleVerificationBasis,
-    rights: "family-viewer-approved",
-    rightsBasis: queue.rightsBasis,
-    rightsConfirmedAt: "2026-07-12",
+    rights: canonicalTarget?.rights || "family-viewer-approved",
+    rightsBasis: canonicalTarget?.rightsBasis || queue.rightsBasis,
     privacy: "private",
     storage: "encrypted-external",
     archivePath: `FamilyHistorySourceMasters/${target.archiveFile}`,
     encryption: "windows-efs"
   };
+  if (record.rights === "family-viewer-approved") record.rightsConfirmedAt ||= "2026-07-12";
+  else delete record.rightsConfirmedAt;
   if (target.viewerPublishState === "published") {
     record.viewer = {
       approved: true,

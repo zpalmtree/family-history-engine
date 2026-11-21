@@ -40,7 +40,7 @@ The store, build, validators, GEDCOM tools, life stories and viewer run anywhere
 | Running a research tool | `npm run local -- tools/<tool>.mjs [arguments]` | The `*:win:*` npm scripts and PowerShell wrappers |
 | Provider sign-in | Chrome's own saved passwords in the tree's profile | The same, through the bridge |
 
-`npm run local` holds one browser lock so tasks never drive Chrome at the same time, and runs the tool as the Windows wrappers would. Secrets go in the operating system's own store: `npm run secret -- set <name>` (value on stdin), `status` and `delete`, kept in the macOS Keychain or the Linux Secret Service under the tree's id. The contact-form requester profile is stored as JSON (`npm run secret -- set archive-request-profile`) and handed to the form helper with `npm run local -- tools/authorized-contact-form.mjs --target <id> --contact-profile-stdin --secret-stdin archive-request-profile`; the TLCPL library profile uses the store directly. Still Windows-only for now: the Lob cheque account and the API-key bridges, the personal IMAP mailbox reader, and the wrappers' window handling.
+`npm run local` holds one browser lock so tasks never drive Chrome at the same time, and runs the tool as the Windows wrappers would. Secrets go in the operating system's own store: `npm run secret -- set <name>` (value on stdin), `status` and `delete`, kept in the macOS Keychain or the Linux Secret Service under the tree's id. The contact-form requester profile is stored as JSON (`npm run secret -- set archive-request-profile`) and handed to the form helper with `npm run local -- tools/authorized-contact-form.mjs --target <id> --contact-profile-stdin --secret-stdin archive-request-profile`; the TLCPL library profile uses the store directly. Tested on macOS (Apple silicon) and in Linux CI. Over SSH the macOS login Keychain is locked, so store secrets from Terminal on the Mac or run `security unlock-keychain` first. Still Windows-only for now: the Lob cheque account and the API-key bridges, the personal IMAP mailbox reader, and the wrappers' window handling.
 
 ## Upgrading the engine
 
@@ -67,6 +67,8 @@ The upgrade fetches the release from `engine.source` in `tree.config.json` (or `
 | `paths.recordArchive` | `~/family-history-source-masters/<id>` | Source-master archive; `FAMILY_RECORD_ARCHIVE` overrides |
 | `viewer.title`, `shortTitle`, `subtitle` | the tree title | Viewer branding |
 | `vercel.scope` | `null` | Vercel team for direct publication |
+| `research.questionIdPrefixes` | `["rq-frontier-"]` | Question-id prefixes the research README names once per group, to keep long branch lists short |
+| `research.submissionCheckpoints` | `[]` | Exact `SUBMIT` phrases the owner has typed for no-charge requests |
 | `consentsFile` | `consents.json` | Name of the consents file |
 | `engineBoundary.terms` | `[]` | This tree's distinctive words; the engine-boundary check stops them spreading into engine code |
 

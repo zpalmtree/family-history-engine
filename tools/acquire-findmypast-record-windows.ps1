@@ -32,7 +32,7 @@ if (-not $target) {
     id = $canonical.id
     provider = 'Findmypast'
     status = if ($canonicalRoute.status -eq 'acquired') { 'acquired' } else { 'pending-subscription' }
-    captureKind = 'record-image'
+    captureKind = if ($canonical.captureKind) { $canonical.captureKind } else { 'record-image' }
     searchUrl = $canonicalRoute.sourceUrl
     catalogueUrl = $canonicalRoute.sourceUrl
     resultMatch = @($canonical.resultMatch)

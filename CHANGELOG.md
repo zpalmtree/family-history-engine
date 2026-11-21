@@ -2,6 +2,14 @@
 
 The first heading is the version `npm run engine:release` publishes. Upgrade a tree with `npm run tree:upgrade -- --ref v<version>`.
 
+## 0.3.3 — 2026-11-20
+
+- Tested on macOS 26 (Apple silicon, Node 22): the engine tests, the five-minute walkthrough, the new-tree checks, `browser:start`/`npm run local` against Chrome, and the Keychain secret store.
+- A locked secret store (the macOS login Keychain over SSH, or Linux without a desktop keyring) now says it is locked instead of reporting the secret as not stored.
+- Session status no longer warns that the inbox has never been swept on a tree that has sent no requests.
+- The research README's question-id prefix groups come from `research.questionIdPrefixes` in `tree.config.json` (default `rq-frontier-`).
+- From ongoing research use: FamilySearch film reading and record import fixes, public-record recovery fixes, a more compact research README for large branches, and new publish-gate tests.
+
 ## 0.3.2 — 2026-11-20
 
 - README: screenshots of the sample tree (map, a person's page, pedigree, phone) and a five-minute walkthrough.

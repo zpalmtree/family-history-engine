@@ -56,6 +56,7 @@ $AllowedHosts = @(
   "tile.loc.gov",
   "probatesearch.service.gov.uk",
   "leicester.contentdm.oclc.org",
+  "digitalcollections.hclib.org",
   "www.gnosallhistory.co.uk",
   "iiif-antenati.cultura.gov.it",
   "nara-1940-census.s3.us-east-2.amazonaws.com",

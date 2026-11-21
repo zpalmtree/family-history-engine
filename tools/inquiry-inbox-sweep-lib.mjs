@@ -100,14 +100,15 @@ export const inboxSweepStaleHours = 6;
 export function inboxStatus({ requests, sweepState, scope = "main", now = new Date() }) {
   const lastSweptAt = sweepState?.lastSweptAt || null;
   const ageHours = lastSweptAt ? Math.round(((now - new Date(lastSweptAt)) / 36e5) * 10) / 10 : null;
-  const untriaged = requests
-    .filter((request) => (request.researchScope || "main") === scope)
+  const scoped = requests.filter((request) => (request.researchScope || "main") === scope);
+  const untriaged = scoped
     .map((request) => ({ requestId: request.id, messageIds: deriveExternalRequest(request).untriagedReplyIds || [] }))
     .filter((entry) => entry.messageIds.length);
   return {
     lastSweptAt,
     ageHours,
-    stale: ageHours === null || ageHours > inboxSweepStaleHours,
+    // A tree that has never sent a request has no inbox to sweep.
+    stale: scoped.length > 0 && (ageHours === null || ageHours > inboxSweepStaleHours),
     untriaged,
     command: "npm run requests:inbox:sweep"
   };

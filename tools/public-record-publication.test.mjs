@@ -200,6 +200,19 @@ test("FamilySearch registration accepts both exact image ARK forms, but not inde
   ]) assert.equal(accepts(url), false, url);
 });
 
+test("FamilySearch gallery registration requires an exact person URL and item title", () => {
+  const start = registerFamilySearch.indexOf("function isTitledMemoryRoute(route)");
+  const end = registerFamilySearch.indexOf("function registerCompatibilityTarget", start);
+  const accepts = new Function(`${registerFamilySearch.slice(start, end)}; return isTitledMemoryRoute;`)();
+  const sourceUrl = "https://www.familysearch.org/en/tree/person/memories/ABCD-123";
+  const memoryTitle = "Family photograph";
+  assert.equal(accepts({ sourceUrl, memoryTitle }), true);
+  assert.equal(accepts({ sourceUrl }), false);
+  assert.equal(accepts({ sourceUrl, memoryTitle: " " }), false);
+  assert.equal(accepts({ sourceUrl: `${sourceUrl}?personId=OTHER`, memoryTitle }), false);
+  assert.equal(accepts({ sourceUrl: sourceUrl.replace("familysearch.org/", "familysearch.org.example/"), memoryTitle }), false);
+});
+
 test("parallel FamilySearch registrations serialize compatibility-queue writes", () => {
   assert.match(registerFamilySearch, /withFileLockSync\(queuePath/);
   assert.match(registerFamilySearch, /const currentQueue = JSON\.parse\(fs\.readFileSync\(queuePath/);

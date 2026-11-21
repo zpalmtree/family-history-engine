@@ -35,3 +35,12 @@ test("a FamilySearch target without its own hash passes on the manifest row's ha
   });
   assert.deepEqual(scopedIssues(["mine"], none), ["mine: target has no archived sha256"]);
 });
+
+test("every records:publish chain validates through the scoped gate, not a whole-tree data:check", async () => {
+  const fs = await import("node:fs");
+  const scripts = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).scripts;
+  for (const name of ["records:publish:public", "records:publish:subscriptions", "records:publish:familysearch"]) {
+    assert.ok(scripts[name].includes("node tools/publish-gate.mjs"), `${name} must run the scoped publish gate`);
+    assert.ok(!scripts[name].includes("npm run data:check"), `${name} must not run the whole-tree data:check directly`);
+  }
+});

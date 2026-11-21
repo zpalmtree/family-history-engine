@@ -131,6 +131,7 @@ test("session inbox status is stale when never swept or older than the threshold
   assert.equal(fresh.ageHours, 2);
   assert.deepEqual(fresh.untriaged, [{ requestId: "test-request", messageIds: ["1a0000000000abcd"] }]);
   assert.equal(inboxStatus({ requests: [request], sweepState: { lastSweptAt: "2026-11-02T00:00:00.000Z" }, now }).stale, true);
+  assert.equal(inboxStatus({ requests: [], sweepState: null, now }).stale, false, "a tree with no requests has nothing to sweep");
 });
 
 test("the sweep reads Gmail only through the read-only inspector in the shared window and writes no message body", () => {

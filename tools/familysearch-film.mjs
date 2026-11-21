@@ -32,6 +32,7 @@ const sourceViewIndex = argumentValue("--source-view");
 const sourceLink = argumentValue("--source-link");
 const resultItem = argumentValue("--result-item");
 const recordUrl = argumentValue("--record");
+const memoryTitle = argumentValue("--memory-title");
 const catalogUrl = argumentValue("--catalog-url");
 const catalogSubject = argumentValue("--catalog-subject");
 const catalogPage = argumentValue("--catalog-page");
@@ -510,17 +511,23 @@ try {
     if (target.protocol !== "https:" || target.hostname !== "www.familysearch.org") {
       throw new Error("--download-record accepts only https://www.familysearch.org record URLs.");
     }
+    if (memoryTitle && (imageNumber || !isMemoryGallery(target))) {
+      throw new Error("A titled Memory download requires the exact person Memories URL without a frame or URL parameters.");
+    }
     const downloadPath = process.env.FAMILYSEARCH_DOWNLOAD_PATH;
     if (!downloadPath || !path.win32.isAbsolute(downloadPath)
       || path.win32.basename(path.win32.dirname(downloadPath)).toLocaleLowerCase() !== "familyhistorysourcemasters") {
       throw new Error("FAMILYSEARCH_DOWNLOAD_PATH must be an absolute file in FamilyHistorySourceMasters.");
     }
-    console.log("Opening the requested FamilySearch record in an isolated download tab.");
+    if (memoryTitle && fs.existsSync(downloadPath)) {
+      throw new Error("The Memory destination already exists in the source archive.");
+    }
+    console.log("Opening the requested FamilySearch record in the owned download tab.");
     await page.goto(target.href, { waitUntil: "domcontentloaded", timeout: 45_000 });
     await page.waitForTimeout(2_000);
     await assertFamilySearchSignedIn(page);
     const closeIntro = page.getByRole("button", { name: "Close", exact: true }).last();
-    if (await closeIntro.isVisible().catch(() => false)) {
+    if (!memoryTitle && await closeIntro.isVisible().catch(() => false)) {
       await closeIntro.click({ force: true, noWaitAfter: true, timeout: 10_000 });
       await page.waitForTimeout(500);
     }
@@ -532,11 +539,17 @@ try {
     if (imageNumber) {
       selectedDownloadThumbnailUrl = await navigateViewerToImage(page, imageNumber);
     }
-    let saved = selectedDownloadThumbnailUrl
-      ? await saveExactThumbnailDistribution(page, context, selectedDownloadThumbnailUrl, downloadPath)
-        .then(() => true)
-        .catch(() => false)
-      : await saveDeepZoomDistribution(page, context, downloadPath);
+    let saved;
+    if (memoryTitle) {
+      await saveMemoryDownload(page, memoryTitle, downloadPath);
+      saved = true;
+    } else {
+      saved = selectedDownloadThumbnailUrl
+        ? await saveExactThumbnailDistribution(page, context, selectedDownloadThumbnailUrl, downloadPath)
+          .then(() => true)
+          .catch(() => false)
+        : await saveDeepZoomDistribution(page, context, downloadPath);
+    }
     if (!saved) {
       const checkImageAvailability = page.getByRole("button", { name: /^Check Image Availability$/i }).first();
       await checkImageAvailability.waitFor({ state: "visible", timeout: 8_000 }).catch(() => {});
@@ -624,7 +637,10 @@ try {
     await page.waitForTimeout(8_000);
     await assertFamilySearchSignedIn(page);
     const exactContext = page.getByText(contextQuery, { exact: true }).first();
-    const expandableContext = exactContext.locator("xpath=ancestor-or-self::*[self::button or @role='button'][1]");
+    const memoryTile = page.getByRole("button", { name: `Photo memory titled ${contextQuery}`, exact: true });
+    const expandableContext = /\/tree\/person\/memories\//.test(target.pathname) && await memoryTile.count() === 1
+      ? memoryTile
+      : exactContext.locator("xpath=ancestor-or-self::*[self::button or @role='button'][1]");
     if (await expandableContext.isVisible().catch(() => false)) {
       await expandableContext.click({ timeout: 20_000 });
       await page.waitForTimeout(750);
@@ -647,11 +663,22 @@ try {
     if (target.protocol !== "https:" || target.hostname !== "www.familysearch.org") {
       throw new Error("--capture --record accepts only https://www.familysearch.org URLs.");
     }
+    if (memoryTitle && (!isMemoryGallery(target) || captureCount !== undefined || captureImages !== undefined || imageNumber)) {
+      throw new Error("A titled Memory capture requires the exact person Memories URL without a frame, range or URL parameters.");
+    }
     await page.goto(target.href, { waitUntil: "domcontentloaded", timeout: 45_000 });
     await page.waitForTimeout(8_000);
     await assertFamilySearchSignedIn(page);
     await assertViewerGroup(page, target.searchParams.get("groupId"));
-    if (captureCount !== undefined || captureImages !== undefined) {
+    if (memoryTitle) {
+      assertOwnedPage(page, sharedConnection);
+      const capturePath = process.env.FAMILYSEARCH_CAPTURE_PATH;
+      if (!capturePath || path.win32.dirname(capturePath).toLowerCase() !== os.tmpdir().toLowerCase()) {
+        throw new Error("A Memory preview must be saved in the Windows temporary directory.");
+      }
+      await captureMemoryThumbnail(page, context, memoryTitle, capturePath);
+      captureRangeCompleted = true;
+    } else if (captureCount !== undefined || captureImages !== undefined) {
       let requestedImages;
       if (captureImages !== undefined) {
         requestedImages = captureImages.split(",").map(Number);
@@ -1231,7 +1258,7 @@ try {
     });
     console.log("  Page links:");
     for (const link of links) console.log(`    ${link.href} | ${link.label}${link.context ? ` | ${link.context}` : ""}`);
-    const controls = await page.locator("main button").evaluateAll((nodes) => nodes.map((node) => ({
+    const controls = await page.locator("main button, [role=dialog] button:visible").evaluateAll((nodes) => nodes.map((node) => ({
       label: (node.getAttribute("aria-label") || node.textContent || "").replace(/\s+/g, " ").trim(),
       disabled: node.disabled,
       title: node.getAttribute("title") || ""
@@ -1502,9 +1529,48 @@ function argumentValue(flag) {
   return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-async function saveVisibleDownload(page, downloadPath, timeout) {
-  const buttons = await page.getByRole("button", { name: "Download", exact: true }).all();
-  const links = await page.getByRole("link", { name: "Download", exact: true }).all();
+async function saveMemoryDownload(page, title, downloadPath) {
+  const tile = page.getByRole("button", { name: `Photo memory titled ${title}`, exact: true });
+  await tile.click({ timeout: 15_000 });
+  const dialog = page.getByRole("dialog").filter({ has: page.getByText(title, { exact: true }) });
+  await dialog.getByRole("button", { name: "Download", exact: true }).waitFor({ timeout: 12_000 });
+  if (!await saveVisibleDownload(page, downloadPath, 15_000, dialog)) {
+    throw new Error("FamilySearch did not return the selected Memory photo from its Download control.");
+  }
+}
+
+function isMemoryGallery(url) {
+  return url.protocol === "https:" && url.hostname === "www.familysearch.org"
+    && !url.search && !url.hash
+    && /^\/(?:en\/)?tree\/person\/memories\/[A-Z0-9]{4}-[A-Z0-9]{3}\/?$/i.test(url.pathname);
+}
+
+async function captureMemoryThumbnail(page, context, title, capturePath) {
+  const tile = page.getByRole("button", { name: `Photo memory titled ${title}`, exact: true });
+  const thumbnail = tile.locator("img");
+  await thumbnail.waitFor({ state: "visible", timeout: 10_000 });
+  const image = await thumbnail.evaluate(element => ({
+    url: element.currentSrc,
+    width: element.naturalWidth,
+    height: element.naturalHeight
+  }));
+  if (!image.width || !image.height || !image.url) throw new Error("The selected Memory thumbnail has not loaded.");
+  const address = new URL(image.url);
+  if (address.protocol !== "https:" || !address.hostname.endsWith(".familysearch.org")
+    || !/^\/service\/records\/storage\/dascloud\/patron\/v2\/[^/]+\/thumbMobile\.jpg$/i.test(address.pathname)) {
+    throw new Error("The selected Memory does not expose a recognized rendered gallery thumbnail.");
+  }
+  const response = await context.request.get(address.href, { timeout: 12_000, maxRedirects: 0, headers: { Referer: page.url() } });
+  if (!response.ok() || !/^image\//i.test(response.headers()["content-type"] || "")) {
+    throw new Error("FamilySearch did not provide the rendered Memory preview.");
+  }
+  fs.writeFileSync(capturePath, await response.body(), { flag: "wx" });
+  console.log(`Temporary local Memory preview (${image.width}x${image.height}): ${capturePath}`);
+}
+
+async function saveVisibleDownload(page, downloadPath, timeout, container = page) {
+  const buttons = await container.getByRole("button", { name: "Download", exact: true }).all();
+  const links = await container.getByRole("link", { name: "Download", exact: true }).all();
   for (const control of [...buttons, ...links].reverse()) {
     if (!await control.isVisible().catch(() => false)) continue;
     const imageResponses = [];

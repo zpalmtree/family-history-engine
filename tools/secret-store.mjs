@@ -53,6 +53,18 @@ function runCommand([command, args], input) {
   return spawnSync(command, args, { input, encoding: "utf8" });
 }
 
+// A locked store fails differently from a missing secret: say so instead of
+// reporting the secret as absent. Over SSH the macOS login Keychain is locked
+// ("User interaction is not allowed"); Secret Service has no unlocked
+// collection without a desktop session.
+const LOCKED = /interaction is not allowed|keychain is locked|is locked|no such secret collection|cannot autolaunch|org\.freedesktop\.secrets/i;
+
+function lockedError(backend) {
+  return new Error(backend === "keychain"
+    ? "The macOS login Keychain is locked in this session (for example over SSH): run it from Terminal on the Mac, or unlock it first with security unlock-keychain."
+    : "The Secret Service is not available or is locked in this session: run it from your desktop session, or unlock your keyring first.");
+}
+
 export function setSecret(name, value, { backend = secretBackend(), run = runCommand } = {}) {
   if (!value) throw new Error("Refusing to store an empty secret.");
   const commands = secretCommands(backend, serviceName(name));
@@ -61,12 +73,18 @@ export function setSecret(name, value, { backend = secretBackend(), run = runCom
     ? `add-generic-password -U -s ${quote(serviceName(name))} -a ${quote(process.env.USER || "family-history")} -w ${quote(value)}\n`
     : value;
   const result = run(commands.set, input);
-  if (result.status !== 0) throw new Error(`Could not store ${name} (${backend}).`);
+  if (result.status !== 0) {
+    if (LOCKED.test(result.stderr || "")) throw lockedError(backend);
+    throw new Error(`Could not store ${name} (${backend}).`);
+  }
 }
 
 export function getSecret(name, { backend = secretBackend(), run = runCommand } = {}) {
   const result = run(secretCommands(backend, serviceName(name)).get, "");
-  if (result.status !== 0) return null;
+  if (result.status !== 0) {
+    if (LOCKED.test(result.stderr || "")) throw lockedError(backend);
+    return null;
+  }
   return String(result.stdout).replace(/\r?\n$/, "") || null;
 }
 

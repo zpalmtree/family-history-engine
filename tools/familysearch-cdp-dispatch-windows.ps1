@@ -79,6 +79,7 @@ try {
       cipher.exe /E /A /Q $archiveRoot | Out-Null
       $env:FAMILYSEARCH_DOWNLOAD_PATH = Join-Path $archiveRoot $OutFile
       $nodeArgs += @("--download-record", "--record", $Record)
+      if ($Query) { $nodeArgs += @("--memory-title", $Query) }
       if ($Image -gt 0) { $nodeArgs += @("--image", [string]$Image) }
     }
     "context" {
@@ -137,6 +138,7 @@ try {
     }
     "capture" {
       if (-not $OutFile) { throw "-OutFile is required for capture mode." }
+      if ($Query -and -not $Record) { throw "A titled Memory preview requires its exact -Record URL." }
       if ($OutFile -notmatch '^[a-z0-9][a-z0-9._-]+$') { throw "-OutFile must be a safe lowercase filename, not a path." }
       if ($Images -and $Images -notmatch '^[1-9]\d*(,[1-9]\d*){0,99}$') { throw "-Images must be 1 through 100 comma-separated positive image numbers." }
       if ($Images -and ($Image -gt 0 -or $Index -gt 0)) { throw "Pass -Images or the -Image/-Index range, not both." }
@@ -144,6 +146,7 @@ try {
       $env:FAMILYSEARCH_CAPTURE_PATH = Join-Path ([IO.Path]::GetTempPath()) $OutFile
       $nodeArgs += "--capture"
       if ($Record) { $nodeArgs += @("--record", $Record) }
+      if ($Query) { $nodeArgs += @("--memory-title", $Query) }
       if ($Image -gt 0) { $nodeArgs += @("--image", [string]$Image) }
       if ($Images) { $nodeArgs += @("--capture-images", $Images) }
       if ($Index -gt 0) { $nodeArgs += @("--capture-count", [string]$Index) }

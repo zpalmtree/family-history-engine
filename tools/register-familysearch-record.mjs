@@ -87,7 +87,7 @@ function registerCanonicalTarget({ target, targetPath }) {
     && candidate.sourceQueue === "familysearch-recovery"
     && candidate.provider === "FamilySearch"
     && ["ready-download", "acquired", "published"].includes(candidate.status));
-  if (!route?.sourceUrl || !isExactFamilySearchDownloadRoute(route.sourceUrl)) {
+  if (!route?.sourceUrl || !(isExactFamilySearchDownloadRoute(route.sourceUrl) || isTitledMemoryRoute(route))) {
     throw new Error(`canonical FamilySearch target has no exact ready image route: ${target.id}`);
   }
   const sourceFile = findSourcePath(target.sourceId);
@@ -103,6 +103,11 @@ function registerCanonicalTarget({ target, targetPath }) {
 function isExactFamilySearchDownloadRoute(value) {
   return /^https:\/\/www\.familysearch\.org\/ark:\/61903\/3:[12]:/.test(value)
     || /^https:\/\/www\.familysearch\.org\/en\/memories\/memory\/\d+(?:[?#].*)?$/.test(value);
+}
+
+function isTitledMemoryRoute(route) {
+  return typeof route.memoryTitle === "string" && Boolean(route.memoryTitle.trim())
+    && /^https:\/\/www\.familysearch\.org\/(?:en\/)?tree\/person\/memories\/[A-Z0-9]{4}-[A-Z0-9]{3}\/?$/i.test(route.sourceUrl);
 }
 
 function registerCompatibilityTarget({ queue, target, acquiredAt, sha256, mediaType, contents }) {

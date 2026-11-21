@@ -11,6 +11,9 @@ import {
   questionDependenciesSatisfied
 } from "./research-question-state.mjs";
 import { targetResearchRole } from "./research-target-state.mjs";
+import { loadTreeConfig } from "./tree-config.mjs";
+
+const questionIdPrefixes = loadTreeConfig().research?.questionIdPrefixes || ["rq-frontier-"];
 
 const start = "<!-- research-current:start -->";
 const end = "<!-- research-current:end -->";
@@ -83,7 +86,8 @@ export function renderCurrentStateBlock({ questions, targetsByQuestion, branchTa
     "",
     `Questions: **${questionCounts.open || questionCounts.unresolved || 0} open/unresolved**, **${questionCounts.blocked || 0} blocked**. `
       + `Targets: **${targetCounts.actionable || 0} actionable**, **${targetCounts.blocked || 0} blocked**, `
-      + `**${nonSatisfiedTargets.length - (targetCounts.actionable || 0) - (targetCounts.blocked || 0)} other**.`,
+      + `**${nonSatisfiedTargets.length - (targetCounts.actionable || 0) - (targetCounts.blocked || 0)} other**. `
+      + "The default target role is recovery-only.",
     "",
     `History: **${closedQuestions.length - deferredQuestions.length} closed**, **${deferredQuestions.length} deferred** in the `
       + `[question store](../research/questions/); **${satisfiedTargets.length} satisfied** in the `
@@ -147,7 +151,9 @@ export function renderCurrentStateBlock({ questions, targetsByQuestion, branchTa
     }
     if ((question.status === "blocked" || question.routeAssessment?.state === "current-no-known-route")
       && question.reopenWhen?.length) {
-      lines.push(`Resume when: ${compactText(question.reopenWhen.join(" "), 160)}`, "");
+      // The canonical question file keeps the full resume condition; 120
+      // characters keep the gist while a large branch stays within budget.
+      lines.push(`Resume when: ${compactText(question.reopenWhen.join(" "), 120)}`, "");
     }
     const actions = (question.actions || []).filter((action) => action.status !== "completed");
     if (actions.length && question.schemaVersion === 1) {
@@ -164,41 +170,81 @@ export function renderCurrentStateBlock({ questions, targetsByQuestion, branchTa
       .filter((target) => target.reconciliation.state !== "satisfied" && !renderedTargetIds.has(target.id))
       .sort(compareTargets);
     if (targets.length) {
-      // Linked target rows are self-identifying; avoid a repeated section label.
-      for (const target of targets) {
-        renderedTargetIds.add(target.id);
-        lines.push(renderTarget(target, targetRoleById.get(target.id)));
-      }
+      for (const target of targets) renderedTargetIds.add(target.id);
+      lines.push(...renderTargets(targets, targetRoleById));
       lines.push("");
     }
   }
   if (compactGroups.size) {
     lines.push("### Other live questions", "");
     for (const [key, ids] of [...compactGroups].sort(([left], [right]) => left.localeCompare(right))) {
-      lines.push(`- ${key}: ${ids.sort().map((id) => `\`${id}\``).join(", ")}`);
+      // Frontier and branch-scoped bridge ids share long prefixes; naming each
+      // prefix once per group keeps every id recoverable while a large branch
+      // stays in budget. A tree names its own branch prefixes in
+      // tree.config.json (research.questionIdPrefixes).
+      const prefixes = questionIdPrefixes;
+      const sorted = ids.sort();
+      const parts = [];
+      const grouped = new Set();
+      for (const prefix of prefixes) {
+        const members = sorted.filter((id) => id.startsWith(prefix) && !grouped.has(id));
+        if (members.length < 2) continue;
+        for (const id of members) grouped.add(id);
+        // Within a prefix, ids that end in the same place name (four or more)
+        // also name that suffix once: `rq-frontier-` + (`-monreale`: `a`, `b`).
+        const stems = members.map((id) => id.slice(prefix.length));
+        const suffixCounts = new Map();
+        for (const stem of stems) {
+          const suffix = stem.includes("-") ? stem.slice(stem.lastIndexOf("-")) : "";
+          if (suffix) suffixCounts.set(suffix, (suffixCounts.get(suffix) || 0) + 1);
+        }
+        const bySuffix = new Map();
+        const plain = [];
+        for (const stem of stems) {
+          const suffix = stem.includes("-") ? stem.slice(stem.lastIndexOf("-")) : "";
+          if (suffix && suffixCounts.get(suffix) >= 4) {
+            if (!bySuffix.has(suffix)) bySuffix.set(suffix, []);
+            bySuffix.get(suffix).push(stem.slice(0, -suffix.length));
+          } else plain.push(stem);
+        }
+        const pieces = plain.map((stem) => `\`${stem}\``);
+        for (const [suffix, heads] of bySuffix) pieces.push(`(\`${suffix}\`: ${heads.map((head) => `\`${head}\``).join(", ")})`);
+        parts.push(`\`${prefix}\` + ${pieces.join(", ")}`);
+      }
+      const others = sorted.filter((id) => !grouped.has(id));
+      if (others.length) parts.unshift(others.map((id) => `\`${id}\``).join(", "));
+      lines.push(`- ${key}: ${parts.join("; ")}`);
     }
     lines.push("");
   }
   const remainingTargets = nonSatisfiedTargets.filter((target) => !renderedTargetIds.has(target.id));
   if (remainingTargets.length) {
     lines.push("### Other targets", "");
-    for (const target of remainingTargets) lines.push(renderTarget(target, targetRoleById.get(target.id)));
-    lines.push("");
+    lines.push(...renderTargets(remainingTargets, targetRoleById), "");
   }
   lines.push(end);
   return lines.join("\n");
 }
 
-function renderTarget(target, researchRole) {
-  // Keep the generated branch summary bounded as the acquisition corpus grows.
-  // The href retains the exact canonical target ID. A bounded visible label keeps
-  // long descriptive IDs from being duplicated in full in every branch rollup.
-  return `- [${compactId(target.id)}](../acquisition/targets/${target.id}.json): ${target.reconciliation.state}/${target.reconciliation.status}; ${researchRole}`;
+function renderTargets(targets, targetRoleById) {
+  const groups = [];
+  for (const target of targets) {
+    const researchRole = targetRoleById.get(target.id);
+    const role = researchRole === "recovery-only" ? "" : `; ${researchRole}`;
+    const status = `${target.reconciliation.state}/${target.reconciliation.status}${role}`;
+    // Short labels: the link path already carries the full id, and a branch
+    // can list well over a hundred targets within its byte budget.
+    const link = `[${compactId(target.id, 19, 8)}](../acquisition/targets/${target.id}.json)`;
+    const previous = groups.at(-1);
+    // Combine consecutive matching statuses while preserving target priority order.
+    if (previous?.status === status) previous.links.push(link);
+    else groups.push({ status, links: [link] });
+  }
+  return groups.map(({ status, links }) => `- ${status}: ${links.join(" · ")}`);
 }
 
-function compactId(value, maxLength = 27) {
+function compactId(value, maxLength = 27, tailLength = 12) {
   if (value.length <= maxLength) return value;
-  const tailLength = 12;
   return `${value.slice(0, maxLength - tailLength - 1)}…${value.slice(-tailLength)}`;
 }
 

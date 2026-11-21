@@ -30,3 +30,11 @@ test("a missing secret reads as null and an empty one is refused", () => {
   assert.equal(getSecret("absent", { backend: "secret-service", run }), null);
   assert.throws(() => setSecret("x", "", { backend: "keychain", run }), /empty/);
 });
+
+test("a locked store says so instead of reporting the secret missing", () => {
+  const keychain = () => ({ status: 36, stdout: "", stderr: "security: SecKeychainCopySettings: User interaction is not allowed." });
+  assert.throws(() => getSecret("api-key", { backend: "keychain", run: keychain }), /Keychain is locked/);
+  assert.throws(() => setSecret("api-key", "v", { backend: "keychain", run: keychain }), /Keychain is locked/);
+  const service = () => ({ status: 1, stdout: "", stderr: "secret-tool: Cannot autolaunch D-Bus without X11 $DISPLAY" });
+  assert.throws(() => getSecret("api-key", { backend: "secret-service", run: service }), /Secret Service/);
+});

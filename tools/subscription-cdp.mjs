@@ -3761,7 +3761,7 @@ async function acquireTarget(context, browserSession, options) {
       provider: route.provider,
       catalogueUrl: route.sourceUrl,
       searchUrl: route.sourceUrl,
-      captureKind: route.provider === "Findmypast" ? "record-image" : undefined,
+      captureKind: route.provider === "Findmypast" ? canonical.captureKind || "record-image" : undefined,
       resultMatch: canonical.resultMatch || [],
     };
   }

@@ -1,6 +1,6 @@
 {
   "name": "family-history-engine",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "engines": {
@@ -215,7 +215,7 @@
     "records:import:familysearch": "node tools/import-familysearch-records.mjs",
     "records:upload:familysearch": "node tools/upload-approved-records.mjs --familysearch",
     "records:publish:approved-record": "npx --yes vercel@55.0.0 env run -e production -- npx --yes node@24 tools/publish-approved-record.mjs --record",
-    "records:publish:familysearch": "npm run records:import:familysearch && npm run records:atoms:migrate && npm run records:session:seed && npm run data:check && npx --yes vercel@55.0.0 env run -e production -- npx --yes node@24 tools/publish-familysearch-records.mjs && npm run records:import:familysearch && npm run records:publish:variants && npm run records:atoms:migrate && npm run records:session:seed && npm run data:check",
+    "records:publish:familysearch": "npm run records:import:familysearch && npm run records:atoms:migrate && npm run records:session:seed && node tools/publish-gate.mjs && npx --yes vercel@55.0.0 env run -e production -- npx --yes node@24 tools/publish-familysearch-records.mjs && npm run records:import:familysearch && npm run records:publish:variants && npm run records:atoms:migrate && npm run records:session:seed && node tools/publish-gate.mjs",
     "records:publish:variants": "npx --yes vercel@55.0.0 env run -e production -- npx --yes node@24 tools/publish-viewer-derivatives.mjs",
     "records:audit:blob": "npx --yes vercel@55.0.0 env run -e production -- npx --yes node@24 tools/audit-record-blobs.mjs",
     "records:audit:blob:record": "npx --yes vercel@55.0.0 env run -e production -- npx --yes node@24 tools/audit-record-blobs.mjs --record",
